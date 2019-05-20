@@ -1,0 +1,18 @@
+{
+    "require": {
+        "php": "^7.2",
+        "ext-json": "^1.6",
+        "doctrine/dbal": "^2.9",
+        "google/protobuf": "^3.7",
+        "google/cloud-spanner": "^1.15",
+        "grpc/grpc": "^1.19",
+        "ext-PDO": "^7.2",
+        "phpunit/phpunit": "^8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Oat\\DbalSpanner\\": "src/",
+            "Oat\\DbalSpanner\\Tests\\": "tests/"
+        }
+    }
+}
