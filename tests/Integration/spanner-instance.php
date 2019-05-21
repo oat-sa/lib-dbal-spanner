@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-use Oat\DbalSpanner\Tests\Integration\SpannerDatabaseInstanceManager;
+use OAT\Library\DBALSpanner\Tests\Integration\SpannerDatabaseInstanceManager;
 
 $instanceName = 'php-dbal-tests';
 $databaseName = 'spanner-test';

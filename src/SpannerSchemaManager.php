@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Oat\DbalSpanner;
+namespace OAT\Library\DBALSpanner;
 
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Oat\DbalSpanner;
+namespace OAT\Library\DBALSpanner;
 
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
@@ -49,7 +49,7 @@ class SpannerPlatform extends AbstractPlatform
             throw new DBALException('AUTO_INCREMENT is not supported by GCP Spanner.');
         }
 
-        return $this->getUnsignedDeclaration($columnDef);
+        return 'INT64';
     }
 
     public function getFloatDeclarationSQL(array $fieldDeclaration)

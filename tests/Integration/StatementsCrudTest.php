@@ -5,11 +5,12 @@ use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Google\Cloud\Core\Exception\BadRequestException;
-use Oat\DbalSpanner\SpannerConnection;
-use Oat\DbalSpanner\SpannerDriver;
-use Oat\DbalSpanner\SpannerPlatform;
+use OAT\Library\DBALSpanner\SpannerConnection;
+use OAT\Library\DBALSpanner\SpannerDriver;
+use OAT\Library\DBALSpanner\SpannerPlatform;
+use PHPUnit\Framework\TestCase;
 
-class StatementsCrudTest extends \PHPUnit\Framework\TestCase
+class StatementsCrudTest extends TestCase
 {
     protected const INSTANCE_NAME = 'php-dbal-tests';
     protected const DATABASE_NAME = 'spanner-test';

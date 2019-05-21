@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Oat\DbalSpanner\Tests\Integration;
+namespace OAT\Library\DBALSpanner\Tests\Integration;
 
 use Google\Cloud\Core\Exception\GoogleException;
 use Google\Cloud\Spanner\Database;

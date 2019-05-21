@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Oat\DbalSpanner;
+namespace OAT\Library\DBALSpanner;
 
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver\Statement;
@@ -129,7 +129,7 @@ class SpannerStatement implements IteratorAggregate, Statement
      * @param array $params
      *
      * @return array
-     * @throws InvalidArgumentException When a wrong number of parameters are provided.
+     * @throws InvalidArgumentException when a wrong number of parameters is provided.
      */
     public function translatePositionalParameterNames(array $params): array
     {
@@ -181,6 +181,12 @@ class SpannerStatement implements IteratorAggregate, Statement
         throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
     }
 
+    /**
+     * @param array $params
+     *
+     * @return bool
+     * @throws InvalidArgumentException when a wrong number of parameters is provided.
+     */
     public function execute($params = null): bool
     {
         $parameters = $this->translatePositionalParameterNames($params ?? []);
