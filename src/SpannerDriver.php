@@ -55,7 +55,7 @@ class SpannerDriver implements Driver
 
     public function getName()
     {
-        return 'gcloud_spanner';
+        return 'gcp-spanner';
     }
 
     public function getDatabase(Connection $conn)
