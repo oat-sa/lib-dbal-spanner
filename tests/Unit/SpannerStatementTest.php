@@ -4,7 +4,7 @@ namespace Oat\DbalSpanner\Tests\Unit;
 
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Google\Cloud\Spanner\Database;
-use Oat\DbalSpanner\SpannerStatement;
+use OAT\Library\DBALSpanner\SpannerStatement;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

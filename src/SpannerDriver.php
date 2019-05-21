@@ -75,7 +75,7 @@ class SpannerDriver implements Driver
     {
         if (!in_array($databaseName, $this->showDatabases())) {
             throw new NotFoundException(
-                sprintf('Database "%s" does not exist on instance "%s".', $databaseName, $this->instance->name())
+                sprintf("Database '%s' does not exist on instance '%s'.", $databaseName, $this->instance->name())
             );
         }
 
@@ -94,10 +94,10 @@ class SpannerDriver implements Driver
     public function parseParameters(array $params): array
     {
         if (!isset($params['instance'])) {
-            throw new LogicException('Missing parameter "instance" to connect to Spanner instance.');
+            throw new LogicException("Missing parameter 'instance' to connect to Spanner instance.");
         }
         if (!isset($params['dbname'])) {
-            throw new LogicException('Missing parameter "dbname" to connect to Spanner database.');
+            throw new LogicException("Missing parameter 'dbname' to connect to Spanner database.");
         }
 
         return [$params['instance'], $params['dbname']];
@@ -122,7 +122,7 @@ class SpannerDriver implements Driver
 
             $instance = $spanner->instance($instanceName);
             if (!$instance->exists()) {
-                throw new LogicException(sprintf('Instance %s does not exist.', $instanceName));
+                throw new LogicException(sprintf("Instance '%s' does not exist.", $instanceName));
             }
 
             $this->instance = $instance;

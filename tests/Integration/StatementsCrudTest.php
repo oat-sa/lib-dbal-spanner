@@ -184,17 +184,17 @@ class StatementsCrudTest extends TestCase
     {
         return [
             [
-                'The statement "SELECT * FROM statements WHERE modelid = ? AND subject = ?" expects exactly 2 parameters, 1 found.',
+                "The statement 'SELECT * FROM statements WHERE modelid = ? AND subject = ?' expects exactly 2 parameters, 1 found.",
                 'SELECT * FROM statements WHERE modelid = ? AND subject = ?',
                 [2],
             ],
             [
-                'The statement "SELECT * FROM statements WHERE modelid = ? AND subject = ?" expects exactly 2 parameters, 3 found.',
+                "The statement 'SELECT * FROM statements WHERE modelid = ? AND subject = ?' expects exactly 2 parameters, 3 found.",
                 'SELECT * FROM statements WHERE modelid = ? AND subject = ?',
                 [2, 'foo', 'bar'],
             ],
             [
-                'Statement "SELECT * FROM statements WHERE modelid = :model AND subject = ?" can not use both named and positional parameters.',
+                "Statement 'SELECT * FROM statements WHERE modelid = :model AND subject = ?' can not use both named and positional parameters.",
                 'SELECT * FROM statements WHERE modelid = :model AND subject = ?',
                 [2],
             ],

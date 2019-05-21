@@ -48,7 +48,7 @@ class SpannerDatabaseInstanceManager
     public function createInstance(string $instanceName, string $configurationName = self::CONFIGURATION_NAME)
     {
         if (!in_array($instanceName, $this->listInstances())) {
-            echo sprintf('Creating instance %s on project %s:...' . PHP_EOL, $instanceName, $this->projectName);
+            echo sprintf("Creating instance '%s' on project '%s'..." . PHP_EOL, $instanceName, $this->projectName);
             $this->client->createInstance($this->client->instanceConfiguration($configurationName), $instanceName);
         }
 
@@ -58,11 +58,11 @@ class SpannerDatabaseInstanceManager
     public function deleteInstance(string $instanceName): bool
     {
         if (!in_array($instanceName, $this->listInstances())) {
-            echo sprintf('Instance %s does not exist on project %s:...' . PHP_EOL, $instanceName, $this->projectName);
+            echo sprintf("Instance '%s' does not exist on project '%s'." . PHP_EOL, $instanceName, $this->projectName);
             return false;
         }
 
-        echo sprintf('Deleting instance %s on project %s:...' . PHP_EOL, $instanceName, $this->projectName);
+        echo sprintf("Deleting instance '%s' on project '%s'..." . PHP_EOL, $instanceName, $this->projectName);
         $instance = $this->getInstance($instanceName);
         $instance->delete();
 
@@ -90,7 +90,7 @@ class SpannerDatabaseInstanceManager
     {
         $database = $this->getInstance($instanceName)->database($databaseName);
         if (!$database->exists()) {
-            echo sprintf('Creating database %s on instance %s...' . PHP_EOL, $databaseName, $instanceName);
+            echo sprintf("Creating database '%s' on instance '%s'..." . PHP_EOL, $databaseName, $instanceName);
             $operation = $database->create(['statements' => $statements]);
             $operation->pollUntilComplete();
         }
@@ -98,11 +98,11 @@ class SpannerDatabaseInstanceManager
 
     public function getResourcesStatus(string $instanceName): string
     {
-        $str = sprintf('Existing instances on project %s:' . PHP_EOL, $this->projectName)
+        $str = sprintf("Existing instances on project '%s':" . PHP_EOL, $this->projectName)
             . implode(PHP_EOL, $this->listInstances()) . PHP_EOL;
 
         if (in_array($instanceName, $this->listInstances())) {
-            $str .= sprintf('Existing databases on instance %s:' . PHP_EOL, $instanceName)
+            $str .= sprintf("Existing databases on instance '%s':" . PHP_EOL, $instanceName)
                 . implode(PHP_EOL, $this->listDatabases($instanceName)) . PHP_EOL;
         }
 

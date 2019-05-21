@@ -74,7 +74,7 @@ class SpannerStatement implements IteratorAggregate, Statement
 
         if ($named && $positional) {
             throw new InvalidArgumentException(
-                sprintf('Statement "%s" can not use both named and positional parameters.', $sql)
+                sprintf("Statement '%s' can not use both named and positional parameters.", $sql)
             );
         }
 
@@ -141,7 +141,7 @@ class SpannerStatement implements IteratorAggregate, Statement
         if($this->positionalParameterCount !== count($params)) {
             throw new InvalidArgumentException(
                 sprintf(
-                    'The statement "%s" expects exactly %d parameters, %d found.',
+                    "The statement '%s' expects exactly %d parameters, %d found.",
                     preg_replace('/@param[0-9]+/', '?', $this->sql),
                     $this->positionalParameterCount,
                     count($params)
