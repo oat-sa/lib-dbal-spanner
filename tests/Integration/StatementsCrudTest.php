@@ -19,7 +19,7 @@ class StatementsCrudTest extends TestCase
     protected $connection;
 
     /** @var int */
-    protected $now = 1558344254;
+    protected $now = 1234567890;
 
     public function setUp(): void
     {
@@ -35,11 +35,9 @@ class StatementsCrudTest extends TestCase
             $this->connection = DriverManager::getConnection($connectionParams);
             $this->connection->connect();
         } catch (\Exception $exception) {
-            var_dump('Unable to connect to Spanner instance. Did you forget to start an instance and setup a database prior to running the integration tests?');
+            echo 'Unable to connect to Spanner instance. Did you forget to start an instance and setup a database prior to running the integration tests?';
             $this->markTestSkipped();
         }
-
-//        $this->now = time();
     }
 
     /**

@@ -9,9 +9,12 @@ use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Instance;
 use Google\Cloud\Spanner\SpannerClient;
 use LogicException;
+use Psr\Log\LoggerAwareTrait;
 
 class SpannerDatabaseInstanceManager
 {
+    use LoggerAwareTrait;
+
     private const KEY_FILE_ENV_VARIABLE = 'GOOGLE_APPLICATION_CREDENTIALS';
     private const CONFIGURATION_NAME = 'regional-europe-west1';
 
@@ -48,7 +51,7 @@ class SpannerDatabaseInstanceManager
     public function createInstance(string $instanceName, string $configurationName = self::CONFIGURATION_NAME)
     {
         if (!in_array($instanceName, $this->listInstances())) {
-            echo sprintf("Creating instance '%s' on project '%s'..." . PHP_EOL, $instanceName, $this->projectName);
+            $this->logger->info(sprintf("Creating instance '%s' on project '%s'..." . PHP_EOL, $instanceName, $this->projectName));
             $this->client->createInstance($this->client->instanceConfiguration($configurationName), $instanceName);
         }
 
@@ -58,11 +61,11 @@ class SpannerDatabaseInstanceManager
     public function deleteInstance(string $instanceName): bool
     {
         if (!in_array($instanceName, $this->listInstances())) {
-            echo sprintf("Instance '%s' does not exist on project '%s'." . PHP_EOL, $instanceName, $this->projectName);
+            $this->logger->info(sprintf("Instance '%s' does not exist on project '%s'." . PHP_EOL, $instanceName, $this->projectName));
             return false;
         }
 
-        echo sprintf("Deleting instance '%s' on project '%s'..." . PHP_EOL, $instanceName, $this->projectName);
+        $this->logger->info(sprintf("Deleting instance '%s' on project '%s'..." . PHP_EOL, $instanceName, $this->projectName));
         $instance = $this->getInstance($instanceName);
         $instance->delete();
 
@@ -90,7 +93,7 @@ class SpannerDatabaseInstanceManager
     {
         $database = $this->getInstance($instanceName)->database($databaseName);
         if (!$database->exists()) {
-            echo sprintf("Creating database '%s' on instance '%s'..." . PHP_EOL, $databaseName, $instanceName);
+            $this->logger->info(sprintf("Creating database '%s' on instance '%s'..." . PHP_EOL, $databaseName, $instanceName));
             $operation = $database->create(['statements' => $statements]);
             $operation->pollUntilComplete();
         }

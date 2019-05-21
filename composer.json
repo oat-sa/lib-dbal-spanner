@@ -20,12 +20,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Oat\\DbalSpanner\\": "src/"
+            "OAT\\Library\\DBALSpanner\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Oat\\DbalSpanner\\Tests\\": "tests/"
+            "OAT\\Library\\DBALSpanner\\Tests\\": "tests/"
         }
     }
 }
