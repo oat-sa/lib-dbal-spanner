@@ -72,6 +72,13 @@ class SpannerPlatform extends AbstractPlatform
         return 'BYTES';
     }
 
+    public function getNowExpression()
+    {
+        $dateTime = new \DateTime('now', new \DateTimeZone('UTC'));
+
+        return ($dateTime)->format('U');
+    }
+
     public function getName()
     {
         return 'spanner';
