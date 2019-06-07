@@ -76,7 +76,7 @@ class SpannerPlatform extends AbstractPlatform
     {
         $dateTime = new \DateTime('now', new \DateTimeZone('UTC'));
 
-        return ($dateTime)->format('U');
+        return $dateTime->format('U');
     }
 
     public function getName()
