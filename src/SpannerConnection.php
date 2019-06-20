@@ -129,13 +129,31 @@ class SpannerConnection extends Connection
 
     public function exec($statement)
     {
-        return $this->_conn->database->runTransaction(
+        // Runs schema manipulation on the DDL endpoint.
+        if ($this->isDdlStatement($statement)) {
+            // Don't run schema changes on spanner for the moment.
+            return 0;
+            // TODO: this generates a long running query which has to be managed.
+            $longRunningQuery = $this->database->updateDdl($statement);
+        }
+        /*
+        'CREATE TABLE models (modelid STRING(25) NOT NULL, modeluri STRING(255) NOT NULL,) PRIMARY KEY (modelid)'
+        'CREATE TABLE models (modelid STRING(25) NOT NULL, modeluri STRING(255) NOT NULL) PRIMARY KEY(modelid)'
+        */
+        return $this->database->runTransaction(
             function (Transaction $t) use ($statement) {
                 $rowCount = $t->executeUpdate($statement);
                 $t->commit();
                 return $rowCount;
             }
         );
+    }
+
+    public function isDdlStatement($statement)
+    {
+        return stripos(ltrim($statement), 'create ') === 0
+            || stripos(ltrim($statement), 'drop ') === 0
+            || stripos(ltrim($statement), 'alter ') === 0;
     }
 
     public function lastInsertId($name = null)

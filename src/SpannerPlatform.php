@@ -6,12 +6,19 @@ namespace OAT\Library\DBALSpanner;
 
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Schema\Identifier;
+use Doctrine\DBAL\Schema\Index;
 
 /**
  * The SpannerPlatform provides the behavior, features and SQL dialect of the Spanner database platform.
  */
 class SpannerPlatform extends AbstractPlatform
 {
+    public function getName()
+    {
+        return 'gcp-spanner';
+    }
+
     public function getBooleanTypeDeclarationSQL(array $columnDef)
     {
         return 'BOOL';
@@ -45,7 +52,7 @@ class SpannerPlatform extends AbstractPlatform
 
     protected function _getCommonIntegerTypeDeclarationSQL(array $columnDef)
     {
-        if (! empty($columnDef['autoincrement'])) {
+        if (!empty($columnDef['autoincrement'])) {
             throw new DBALException('AUTO_INCREMENT is not supported by GCP Spanner.');
         }
 
@@ -64,12 +71,17 @@ class SpannerPlatform extends AbstractPlatform
 
     public function getClobTypeDeclarationSQL(array $field)
     {
-        throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
+        return 'BYTES';
     }
 
     public function getBlobTypeDeclarationSQL(array $field)
     {
         return 'BYTES';
+    }
+
+    public function getTruncateTableSQL($tableName, $cascade = false)
+    {
+        throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not yet implemented.' . "\n" . 'To implement it, please follow the guidelines here: https://stackoverflow.com/questions/43266590/does-cloud-spanner-support-a-truncate-table-command');
     }
 
     public function getNowExpression()
@@ -79,8 +91,39 @@ class SpannerPlatform extends AbstractPlatform
         return $dateTime->format('U');
     }
 
-    public function getName()
+    protected function getReservedKeywordsClass()
     {
-        return 'spanner';
+        return SpannerKeywords::class;
+    }
+
+    protected function getVarcharTypeDeclarationSQLSnippet($length, $fixed)
+    {
+        return 'STRING(' . $length . ')';
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected function _getCreateTableSQL($tableName, array $columns, array $options = [])
+    {
+        $queryFields = $this->getColumnDeclarationListSQL($columns);
+
+        $query = 'CREATE TABLE ' . $tableName . ' (' . $queryFields . ')';
+
+        // Primary key is outside of parentheses.
+        if (isset($options['primary']) && !empty($options['primary'])) {
+            $keyColumns = array_unique(array_values($options['primary']));
+            $query .= ' PRIMARY KEY (' . implode(', ', $keyColumns) . ')';
+        }
+        $sql = [$query];
+
+        // Adds optional indexes as separated SQL statements.
+        if (isset($options['indexes']) && !empty($options['indexes'])) {
+            foreach ($options['indexes'] as $index => $definition) {
+                $sql[] = $this->getCreateIndexSQL($index, $definition, $tableName);
+            }
+        }
+
+        return $sql;
     }
 }

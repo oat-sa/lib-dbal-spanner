@@ -73,7 +73,7 @@ class SpannerDriver implements Driver
      */
     public function selectDatabase(string $databaseName): Database
     {
-        if (!in_array($databaseName, $this->showDatabases())) {
+        if (!in_array($databaseName, $this->listDatabases())) {
             throw new NotFoundException(
                 sprintf("Database '%s' does not exist on instance '%s'.", $databaseName, $this->instance->name())
             );
@@ -136,7 +136,7 @@ class SpannerDriver implements Driver
      *
      * @return array|string[]
      */
-    public function showDatabases(): array
+    public function listDatabases(): array
     {
         $databaseList = [];
         foreach ($this->instance->databases() as $database) {
