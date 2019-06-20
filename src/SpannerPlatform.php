@@ -39,10 +39,19 @@ class SpannerPlatform extends AbstractPlatform
         return 'INT64';
     }
 
-    // DateTime is not supported.
-    public function getDateTimeTzTypeDeclarationSQL(array $fieldDeclaration)
+    public function getDateTimeTypeDeclarationSQL(array $fieldDeclaration)
     {
-        throw DBALException::notSupported(__METHOD__);
+        return 'TIMESTAMP';
+    }
+
+    public function getDateTimeFormatString()
+    {
+        return 'U';
+    }
+
+    public function getDateTimeTzFormatString()
+    {
+        return 'U';
     }
 
     public function getDateTypeDeclarationSQL(array $fieldDeclaration)

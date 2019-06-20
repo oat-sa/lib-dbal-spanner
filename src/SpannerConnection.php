@@ -30,6 +30,14 @@ class SpannerConnection extends Connection
     {
         $args = func_get_args();
         $sql = $args[0];
+        // Runs schema manipulation on the DDL endpoint.
+        if ($this->isDdlStatement($sql)) {
+            // Don't run schema changes on spanner for the moment.
+            return null;
+            // TODO: this generates a long running query which has to be managed.
+            $longRunningQuery = $this->database->updateDdl($statement);
+        }
+
         $statement = $this->prepare($sql);
         $statement->execute();
 
@@ -151,9 +159,11 @@ class SpannerConnection extends Connection
 
     public function isDdlStatement($statement)
     {
-        return stripos(ltrim($statement), 'create ') === 0
-            || stripos(ltrim($statement), 'drop ') === 0
-            || stripos(ltrim($statement), 'alter ') === 0;
+        $statement = ltrim($statement);
+
+        return stripos($statement, 'create ') === 0
+            || stripos($statement, 'drop ') === 0
+            || stripos($statement, 'alter ') === 0;
     }
 
     public function lastInsertId($name = null)
