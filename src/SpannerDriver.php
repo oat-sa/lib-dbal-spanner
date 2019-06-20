@@ -15,6 +15,8 @@ use LogicException;
 
 class SpannerDriver implements Driver
 {
+    public const DRIVER_NAME = 'gcp-spanner';
+
     /** @var Instance */
     private $instance;
 
@@ -55,7 +57,7 @@ class SpannerDriver implements Driver
 
     public function getName()
     {
-        return 'gcp-spanner';
+        return self::DRIVER_NAME;
     }
 
     public function getDatabase(Connection $conn)
