@@ -33,6 +33,12 @@ class SpannerStatement implements IteratorAggregate, Statement
     /** @var Result|null The result set resource to fetch. */
     protected $result;
 
+    /** @var array */
+    protected $rows = null;
+
+    /** @var int */
+    protected $offset;
+
     /** @var string */
     protected $defaultFetchMode = Result::RETURN_ASSOCIATIVE;
 
@@ -185,7 +191,13 @@ class SpannerStatement implements IteratorAggregate, Statement
 
     public function rowCount()
     {
-        throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
+        if (!$this->result instanceof Result) {
+            return 0;
+        }
+
+        $this->loadRows();
+
+        return count($this->rows);
     }
 
     public function closeCursor()
@@ -210,7 +222,55 @@ class SpannerStatement implements IteratorAggregate, Statement
 
     public function fetch($fetchMode = null, $cursorOrientation = PDO::FETCH_ORI_NEXT, $cursorOffset = 0)
     {
-        throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
+        if (!$this->result instanceof Result) {
+            return false;
+        }
+
+        $fetchMode = $fetchMode ?: $this->defaultFetchMode;
+
+        if ($fetchMode === FetchMode::COLUMN) {
+            return $this->fetchColumn();
+        }
+
+        $this->loadRows($fetchMode);
+
+        // Find the row offset.
+        $this->offset = $this->findOffset($cursorOrientation, $cursorOffset);
+
+        return $this->offset !== -1
+            ? $this->rows[$this->offset]
+            : false;
+    }
+
+    public function findOffset($cursorOrientation, $cursorOffset)
+    {
+        $lastRow = count($this->rows) - 1;
+
+        switch ($cursorOrientation) {
+            case PDO::FETCH_ORI_NEXT:
+                return $this->offset === $lastRow
+                    ? -1
+                    : $this->offset + 1;
+
+            case PDO::FETCH_ORI_PRIOR:
+                return $this->offset - 1;
+
+            case PDO::FETCH_ORI_FIRST:
+                return 0;
+
+            case PDO::FETCH_ORI_LAST:
+                return $lastRow;
+
+            case PDO::FETCH_ORI_ABS:
+                return $cursorOffset;
+
+            case PDO::FETCH_ORI_REL:
+                $newOffset = $this->offset + $cursorOffset;
+
+                return $newOffset < 0 || $newOffset > $lastRow
+                    ? -1
+                    : $newOffset;
+        }
     }
 
     /**
@@ -230,16 +290,39 @@ class SpannerStatement implements IteratorAggregate, Statement
 
         $fetchMode = $fetchMode ?: $this->defaultFetchMode;
 
-        return $this->result->rows($fetchMode);
+        $this->rows = [];
+        foreach($this->result->rows($fetchMode) as $row) {
+            $this->rows[] = $row;
+        }
+
+        return $this->rows;
     }
 
     public function fetchColumn($columnIndex = 0)
     {
-        throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
+        $nextRow = $this->fetch(Result::RETURN_ZERO_INDEXED);
+
+        return $nextRow === false
+            ? false
+            : $nextRow[$columnIndex];
     }
 
     public function getIterator()
     {
         throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
+    }
+
+    protected function loadRows($fetchMode = null)
+    {
+        $fetchMode = $fetchMode ?: $this->defaultFetchMode;
+
+        // Loads all rows.
+        if ($this->rows === null) {
+            $this->rows = [];
+            foreach ($this->fetchAll($fetchMode) as $row) {
+                $this->rows[] = $row;
+            }
+            $this->offset = -1;
+        }
     }
 }
