@@ -124,6 +124,7 @@ class SpannerDriver implements Driver
                 throw new LogicException($exception->getMessage());
             }
 
+            $this->instanceName = $instanceName;
             $instance = $spanner->instance($instanceName);
             if (!$instance->exists()) {
                 throw new LogicException(sprintf("Instance '%s' does not exist.", $instanceName));
@@ -138,10 +139,15 @@ class SpannerDriver implements Driver
     /**
      * Returns a list of database names existing on a Spanner instance.
      *
+     * @param string $instanceName
+     *
      * @return array|string[]
      */
-    public function listDatabases(string $instanceName): array
+    public function listDatabases(string $instanceName = ''): array
     {
+        if ($instanceName === '') {
+            $instanceName = $this->instanceName;
+        }
         $databaseList = [];
         foreach ($this->getInstance($instanceName)->databases() as $database) {
             if ($database instanceof Database) {
