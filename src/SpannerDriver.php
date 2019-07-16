@@ -121,7 +121,7 @@ class SpannerDriver implements Driver
                 $keyFile = json_decode(file_get_contents(self::KEY_FILE_ENV_VARIABLE), true);
                 $spanner = new SpannerClient(['keyFile' => $keyFile]);
             } catch (GoogleException $exception) {
-                throw new LogicException('gRPC extension is not installed or enabled.');
+                throw new LogicException($exception->getMessage());
             }
 
             $instance = $spanner->instance($instanceName);
