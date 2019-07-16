@@ -12,8 +12,11 @@ use Doctrine\DBAL\ParameterType;
 use Google\Cloud\Core\Exception\BadRequestException;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Result;
+use Google\Cloud\Spanner\Transaction;
 use IteratorAggregate;
 use PDO;
+use PhpMyAdmin\SqlParser\Lexer;
+use PhpMyAdmin\SqlParser\Token;
 
 class SpannerStatement implements IteratorAggregate, Statement
 {
@@ -53,7 +56,6 @@ class SpannerStatement implements IteratorAggregate, Statement
     public function __construct(Database $database, string $sql)
     {
         $this->database = $database;
-        $this->parameterSyntax = $this->detectParameterSyntax($sql);
         $this->sql = $this->translateParameterPlaceHolders($sql);
     }
 
@@ -67,60 +69,41 @@ class SpannerStatement implements IteratorAggregate, Statement
      * @return string One of the PARAMETERS_* constants.
      * @throws InvalidArgumentException when both syntax types are used in the same statement.
      */
-    public function detectParameterSyntax(string $sql): string
+    public function translateParameterPlaceHolders(string $sql): string
     {
-        $named = (strpos($sql, ':') !== false || strpos($sql, '@') !== false);
-        $positional = (strpos($sql, '?') !== false);
+        if (strpos($sql, ':') === false && strpos($sql, '?') === false) {
+            return $sql;
+        }
 
-        if ($named && $positional) {
+        $named = 0;
+        $tokenList = Lexer::getTokens($sql);
+        $translatedSql = '';
+        foreach ($tokenList->tokens as $token) {
+            if ($token->type === Token::TYPE_SYMBOL) {
+                if ($token->token === '?') {
+                    $this->positionalParameterCount++;
+                    $translatedSql .= '@param' . $this->positionalParameterCount;
+                } elseif (substr($token->token, 0, 1) === ':') {
+                    $translatedSql .= str_replace(':', '@', $token->token);
+                    $named++;
+                } elseif (substr($token->token, 0, 1) === '@') {
+                    $translatedSql .= $token->token;
+                    $named++;
+                } else {
+                    $translatedSql .= $token->token;
+                }
+            } else {
+                $translatedSql .= $token->token;
+            }
+        }
+
+        if ($named && $this->positionalParameterCount) {
             throw new InvalidArgumentException(
                 sprintf("Statement '%s' can not use both named and positional parameters.", $sql)
             );
         }
 
-        if ($named) {
-            return self::PARAMETERS_NAMED;
-        }
-
-        if (
-        $positional) {
-            return self::PARAMETERS_POSITIONAL;
-        }
-
-        return self::PARAMETERS_NONE;
-    }
-
-    /**
-     * Translates parameter placeholders to Spanner format.
-     *
-     * @param string $sql
-     *
-     * @return string
-     */
-    public function translateParameterPlaceHolders(string $sql): string
-    {
-        switch ($this->parameterSyntax) {
-            case self::PARAMETERS_NAMED:
-                // Replaces DBAL flavored parameters (:param) with spanner's (@param).
-                return str_replace(':', '@', $sql);
-
-            case self::PARAMETERS_POSITIONAL:
-                // Replaces positional parameters (?) with spanner ordinal generated ones (@param1, @param2, ...).
-                $parts = explode('?', $sql);
-                for ($i = 1; $i < count($parts); $i++) {
-                    $parts[$i - 1] .= '@param' . $i;
-                }
-
-                // Stores the parameter count to assert that the right number of parameters is given upon statement execution.
-                $this->positionalParameterCount = count($parts) - 1;
-
-                return implode('', $parts);
-
-            case self::PARAMETERS_NONE:
-            default:
-                // No parameter at all.
-                return $sql;
-        }
+        return $translatedSql;
     }
 
     /**
@@ -138,7 +121,7 @@ class SpannerStatement implements IteratorAggregate, Statement
         }
 
         // Assert number of parameters.
-        if($this->positionalParameterCount !== count($params)) {
+        if ($this->positionalParameterCount !== count($params)) {
             throw new InvalidArgumentException(
                 sprintf(
                     "The statement '%s' expects exactly %d parameters, %d found.",
