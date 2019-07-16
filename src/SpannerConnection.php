@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace OAT\Library\DBALSpanner;
 
-use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
+use Doctrine\DBAL\Driver\Connection;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Doctrine\DBAL\ParameterType;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Transaction;
 
-class SpannerConnection extends Connection
+class SpannerConnection implements Connection
 {
     /** @var Database */
     protected $database;
@@ -100,20 +100,7 @@ class SpannerConnection extends Connection
 
     public function insert($tableExpression, array $data, array $types = [])
     {
-        $values = [];
-
-        foreach ($data as $columnName => $value) {
-            $values[] = $this->quoteString($value);
-        }
-
-        $statement = sprintf(
-            'INSERT INTO %s (%s) VALUES (%s)',
-            $tableExpression,
-            implode(', ', array_keys($data)),
-            implode(', ', $values)
-        );
-
-        return $this->exec($statement);
+        return $this->database->insert($tableExpression, $data);
     }
 
     /**
@@ -144,10 +131,7 @@ class SpannerConnection extends Connection
             // TODO: this generates a long running query which has to be managed.
             $longRunningQuery = $this->database->updateDdl($statement);
         }
-        /*
-        'CREATE TABLE models (modelid STRING(25) NOT NULL, modeluri STRING(255) NOT NULL,) PRIMARY KEY (modelid)'
-        'CREATE TABLE models (modelid STRING(25) NOT NULL, modeluri STRING(255) NOT NULL) PRIMARY KEY(modelid)'
-        */
+
         return $this->database->runTransaction(
             function (Transaction $t) use ($statement) {
                 $rowCount = $t->executeUpdate($statement);
@@ -161,9 +145,9 @@ class SpannerConnection extends Connection
     {
         $statement = ltrim($statement);
 
-        return stripos($statement, 'create ') === 0
-            || stripos($statement, 'drop ') === 0
-            || stripos($statement, 'alter ') === 0;
+        return stripos($statement, 'CREATE ') === 0
+            || stripos($statement, 'DROP ') === 0
+            || stripos($statement, 'ALTER ') === 0;
     }
 
     public function lastInsertId($name = null)
