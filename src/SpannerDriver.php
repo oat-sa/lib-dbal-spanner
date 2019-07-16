@@ -15,6 +15,7 @@ use LogicException;
 
 class SpannerDriver implements Driver
 {
+    private const KEY_FILE_ENV_VARIABLE = __DIR__ . '/../../../../service_account_credentials.json';
     public const DRIVER_NAME = 'gcp-spanner';
 
     /** @var Instance */
@@ -117,7 +118,8 @@ class SpannerDriver implements Driver
     {
         if ($this->instance === null) {
             try {
-                $spanner = new SpannerClient();
+                $keyFile = json_decode(file_get_contents(self::KEY_FILE_ENV_VARIABLE), true);
+                $spanner = new SpannerClient(['keyFile' => $keyFile]);
             } catch (GoogleException $exception) {
                 throw new LogicException('gRPC extension is not installed or enabled.');
             }
