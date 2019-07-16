@@ -52,7 +52,7 @@ class SpannerDriver implements Driver
 
     public function getSchemaManager(Connection $conn)
     {
-        return new SpannerSchemaManager($conn);
+        return new SpannerSchemaManager($conn, new SpannerPlatform());
     }
 
     public function getName()
