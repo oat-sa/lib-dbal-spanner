@@ -14,7 +14,10 @@ use Google\Cloud\Spanner\Transaction;
 class SpannerConnection implements Connection
 {
     /** @var Database */
-    protected $database;
+    public $database;
+
+    /** @var array */
+    protected $cachedStatements = [];
 
     public function setDatabase(Database $database)
     {
@@ -23,7 +26,18 @@ class SpannerConnection implements Connection
 
     public function prepare($prepareString)
     {
-        return new SpannerStatement($this->_conn->database, $prepareString);
+        if (isset($this->cachedStatements[$prepareString])) {
+            return $this->cachedStatements[$prepareString];
+        }
+
+        if ($this->database === null) {
+            $this->database = $this->_conn->database;
+        }
+        $statement = new SpannerStatement($this->database, $prepareString);
+        $this->cachedStatements[$prepareString] = $statement;
+
+        return $statement;
+
     }
 
     public function query()
