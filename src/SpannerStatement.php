@@ -178,15 +178,38 @@ class SpannerStatement implements IteratorAggregate, Statement
      */
     public function execute($params = null): bool
     {
-        $parameters = $this->translatePositionalParameterNames($params ?? []);
-
         try {
+            $parameters = $this->translatePositionalParameterNames($params ?? []);
+
+            if ($this->isDmlStatement($this->sql)) {
+                $statement = $this->sql;
+                return $this->database->runTransaction(
+                    function (Transaction $t) use ($statement, $parameters) {
+                        $rowCount = $t->executeUpdate($statement, ['parameters' => $parameters]);
+                        $t->commit();
+                        return (bool) $rowCount;
+                    }
+                );
+            }
+
             $this->result = $this->database->execute($this->sql, ['parameters' => $parameters]);
-        } catch (BadRequestException $exception) {
+            $this->rows = null;
+        } catch (\Exception $exception) {
+            var_dump($exception->getMessage());
+            debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
             return false;
         }
 
         return true;
+    }
+
+    public function isDmlStatement($statement)
+    {
+        $statement = ltrim($statement);
+
+        return stripos($statement, 'INSERT ') === 0
+            || stripos($statement, 'UPDATE ') === 0
+            || stripos($statement, 'DELETE ') === 0;
     }
 
     public function rowCount()
