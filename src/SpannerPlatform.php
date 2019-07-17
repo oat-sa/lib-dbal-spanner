@@ -79,12 +79,12 @@ class SpannerPlatform extends AbstractPlatform
 
     public function getDateTimeFormatString()
     {
-        return 'U';
+        return 'Y-m-d\TH:i:s.u\Z';
     }
 
     public function getDateTimeTzFormatString()
     {
-        return 'U';
+        return 'Y-m-d\TH:i:s.u\Z';
     }
 
     public function getDateTypeDeclarationSQL(array $fieldDeclaration)
@@ -134,13 +134,6 @@ class SpannerPlatform extends AbstractPlatform
     public function getTruncateTableSQL($tableName, $cascade = false)
     {
         throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not yet implemented.' . "\n" . 'To implement it, please follow the guidelines here: https://stackoverflow.com/questions/43266590/does-cloud-spanner-support-a-truncate-table-command');
-    }
-
-    public function getNowExpression()
-    {
-        $dateTime = new \DateTime('now', new \DateTimeZone('UTC'));
-
-        return $dateTime->format('Y-m-d\TH:i:s.u\Z');
     }
 
     protected function getReservedKeywordsClass()
