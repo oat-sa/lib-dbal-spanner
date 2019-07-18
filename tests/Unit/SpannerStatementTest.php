@@ -22,35 +22,14 @@ class SpannerStatementTest extends TestCase
     }
 
     /**
-     * @dataProvider uniqueParameterSyntaxToTest
-     */
-    public function testDetectParameterSyntaxWithOneTypeReturnsType(string $sql, string $expected)
-    {
-        // Creates a statement with a blank sql string to avoid detection on constructor.
-        $subject = new SpannerStatement($this->database, '');
-        $this->assertEquals($expected, $subject->detectParameterSyntax($sql));
-    }
-
-    public function uniqueParameterSyntaxToTest()
-    {
-        return [
-            ['', SpannerStatement::PARAMETERS_NONE],
-            [':', SpannerStatement::PARAMETERS_NAMED],
-            ['@', SpannerStatement::PARAMETERS_NAMED],
-            [':@', SpannerStatement::PARAMETERS_NAMED],
-            ['?', SpannerStatement::PARAMETERS_POSITIONAL],
-        ];
-    }
-
-    /**
      * @dataProvider mixedParameterSyntaxesToTest
      */
-    public function testDetectParameterSyntaxWithMixedTypesThrowsException(string $sql)
+    public function testTranslateParameterPlaceHoldersWithMixedTypesThrowsException(string $sql)
     {
         // Creates a statement with a blank sql string to avoid detection on constructor.
         $subject = new SpannerStatement($this->database, '');
         $this->expectException(InvalidArgumentException::class);
-        $subject->detectParameterSyntax($sql);
+        $subject->translateParameterPlaceHolders($sql);
     }
 
     public function mixedParameterSyntaxesToTest()
@@ -66,7 +45,7 @@ class SpannerStatementTest extends TestCase
      */
     public function testTranslateParameterPlaceHolders($sql, $expected)
     {
-        $subject = new SpannerStatement($this->database, $sql);
+        $subject = new SpannerStatement($this->database, '');
         $this->assertEquals($expected, $subject->translateParameterPlaceHolders($sql));
     }
 
