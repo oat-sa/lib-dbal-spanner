@@ -14,7 +14,7 @@ class SpannerPlatform extends AbstractPlatform
 {
     public function getName()
     {
-        return 'gcp-spanner';
+        return SpannerDriver::DRIVER_NAME;
     }
 
     public function getBooleanTypeDeclarationSQL(array $columnDef)

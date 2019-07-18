@@ -16,7 +16,7 @@ class SpannerKeywords extends KeywordList
      */
     public function getName()
     {
-        return 'gcp-spanner';
+        return SpannerDriver::DRIVER_NAME;
     }
 
     /**
