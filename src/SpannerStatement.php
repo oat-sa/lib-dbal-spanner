@@ -120,9 +120,17 @@ class SpannerStatement implements IteratorAggregate, Statement
      * @return array
      * @throws InvalidArgumentException when a wrong number of parameters is provided.
      */
-    public function translatePositionalParameterNames(array $params): array
+    public function translatePositionalParameterNames(array $params = null): array
     {
-        if (!array_key_exists(0, $params)) {
+        // Positional parameters first index.
+        $offset = 0;
+        if ($params === null) {
+            $params = $this->boundValues;
+            $offset = 1;
+        }
+
+        // Named parameters don't have numeric keys.
+        if (!array_key_exists($offset, $params)) {
             return $params;
         }
 
@@ -141,7 +149,7 @@ class SpannerStatement implements IteratorAggregate, Statement
         // Generates 1-based sequenced parameter names.
         $namedParameters = [];
         for ($i = 0; $i < count($params); $i++) {
-            $namedParameters ['param' . ($i + 1)] = $params[$i];
+            $namedParameters ['param' . ($i + 1)] = $params[$i + $offset];
         }
 
         return $namedParameters;
@@ -179,7 +187,7 @@ class SpannerStatement implements IteratorAggregate, Statement
     public function execute($params = null): bool
     {
         try {
-            $parameters = $this->translatePositionalParameterNames($params ?? []);
+            $parameters = $this->translatePositionalParameterNames($params);
 
             if ($this->isDmlStatement($this->sql)) {
                 $statement = $this->sql;
@@ -301,7 +309,7 @@ class SpannerStatement implements IteratorAggregate, Statement
      * @param null $fetchArgument
      * @param null $ctorArgs
      *
-     * @return bool|\Generator|mixed[]
+     * @return bool||mixed[]
      * @throws InvalidArgumentException
      * @throws BadRequestException
      */
