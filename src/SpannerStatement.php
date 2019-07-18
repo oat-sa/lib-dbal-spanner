@@ -355,10 +355,7 @@ class SpannerStatement implements IteratorAggregate, Statement
 
         // Loads all rows.
         if ($this->rows === null) {
-            $this->rows = [];
-            foreach ($this->fetchAll($fetchMode) as $row) {
-                $this->rows[] = $row;
-            }
+            $this->fetchAll($fetchMode);
             $this->offset = -1;
         }
     }
