@@ -313,9 +313,23 @@ class SpannerStatement implements IteratorAggregate, Statement
 
         $fetchMode = $fetchMode ?: $this->defaultFetchMode;
 
+        $realMode = $fetchMode === PDO::FETCH_OBJ
+            ? Result::RETURN_ASSOCIATIVE
+            : $fetchMode;
+
         $this->rows = [];
-        foreach($this->result->rows($fetchMode) as $row) {
+        foreach($this->result->rows($realMode) as $row) {
             $this->rows[] = $row;
+        }
+
+        // Optionally converts each line to a StdClass object.
+        if ($fetchMode === PDO::FETCH_OBJ) {
+            $this->rows = array_map(
+                function(array $row) {
+                    return (object) $row;
+                },
+                $this->rows
+            );
         }
 
         return $this->rows;
