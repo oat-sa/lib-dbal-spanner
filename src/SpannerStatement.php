@@ -51,6 +51,9 @@ class SpannerStatement implements IteratorAggregate, Statement
     /** @var int */
     protected $positionalParameterCount = 0;
 
+    /** @var int */
+    protected $affectedRows = 0;
+
     /**
      * SpannerStatement constructor.
      *
@@ -193,9 +196,10 @@ class SpannerStatement implements IteratorAggregate, Statement
                 $statement = $this->sql;
                 return $this->database->runTransaction(
                     function (Transaction $t) use ($statement, $parameters) {
-                        $rowCount = $t->executeUpdate($statement, ['parameters' => $parameters]);
+                        $this->affectedRows = $t->executeUpdate($statement, ['parameters' => $parameters]);
                         $t->commit();
-                        return (bool) $rowCount;
+
+                        return (bool) $this->affectedRows;
                     }
                 );
             }
@@ -222,6 +226,10 @@ class SpannerStatement implements IteratorAggregate, Statement
 
     public function rowCount()
     {
+        if ($this->isDmlStatement($this->sql)) {
+            return $this->affectedRows;
+        }
+
         if (!$this->result instanceof Result) {
             return 0;
         }
