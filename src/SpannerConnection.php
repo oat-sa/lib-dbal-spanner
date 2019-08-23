@@ -21,7 +21,7 @@ declare(strict_types=1);
 
 namespace OAT\Library\DBALSpanner;
 
-use Doctrine\DBAL\DBALException;
+use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\Connection;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Doctrine\DBAL\ParameterType;
@@ -33,12 +33,16 @@ class SpannerConnection implements Connection
     /** @var Database */
     public $database;
 
+    /** @var Driver */
+    public $driver;
+
     /** @var array */
     protected $cachedStatements = [];
 
-    public function setDatabase(Database $database)
+    public function __construct(Driver $driver, Database $database)
     {
         $this->database = $database;
+        $this->driver = $driver;
     }
 
     public function prepare($prepareString)
@@ -92,7 +96,6 @@ class SpannerConnection implements Connection
      * @param mixed[] $identifiers Input array of columns to values
      *
      * @return string the conditions
-     * @throws DBALException If an invalid platform was specified for this connection.
      */
     protected function forgeWhereClause(array $identifiers)
     {
@@ -101,7 +104,7 @@ class SpannerConnection implements Connection
         foreach ($identifiers as $columnName => $value) {
             $conditions[] = $value !== null
                 ? $columnName . ' = ' . $this->quoteString($value)
-                : $this->getDatabasePlatform()->getIsNullExpression($columnName);
+                : $this->driver->getDatabasePlatform()->getIsNullExpression($columnName);
         }
 
         return implode(' AND ', $conditions);
