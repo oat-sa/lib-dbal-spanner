@@ -31,10 +31,10 @@ use Google\Cloud\Spanner\Transaction;
 class SpannerConnection implements Connection
 {
     /** @var Database */
-    public $database;
+    protected $database;
 
     /** @var Driver */
-    public $driver;
+    protected $driver;
 
     /** @var array */
     protected $cachedStatements = [];
@@ -112,6 +112,10 @@ class SpannerConnection implements Connection
 
     public function update($tableExpression, array $data, array $identifier, array $types = [])
     {
+        if (empty($identifier)) {
+            throw InvalidArgumentException::fromEmptyCriteria();
+        }
+
         $sets = [];
 
         foreach ($data as $columnName => $value) {

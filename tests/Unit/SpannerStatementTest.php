@@ -28,9 +28,6 @@ use PHPUnit\Framework\TestCase;
 
 class SpannerStatementTest extends TestCase
 {
-    /** @var SpannerStatement */
-    private $subject;
-
     /** @var Database|MockObject */
     private $database;
 
