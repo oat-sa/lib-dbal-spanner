@@ -22,7 +22,7 @@ Be careful that running the above command without the `testsuite` option will ru
 - Run the integration tests once or several times as needed.
 - At the end of the integration tests, you should delete the database and the instance to avoid increased costs from Google.
 
-**/!\ Beware** though that the billing is based on a "every started hour is due" policy for each instance. This means that an instance created and deleted within even a second will be billed for 1 hour.
+**/!\ Beware !** though that the billing is based on a "every started hour is due" policy for each instance. This means that an instance created and deleted within even a second will be billed for 1 hour.
 So if you plan to run the integration tests several times within an hour, it's cheaper to setup the instance, then run the tests as many times you want on the same instance, and then delete the instance at the end, else each instance would be billed for one hour.
 
 ### Instance and database creation
