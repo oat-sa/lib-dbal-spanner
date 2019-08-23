@@ -9,20 +9,21 @@ use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Doctrine\DBAL\FetchMode;
 use Doctrine\DBAL\ParameterType;
-use Google\Cloud\Core\Exception\BadRequestException;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Result;
 use Google\Cloud\Spanner\Transaction;
 use IteratorAggregate;
+use OAT\Library\DBALSpanner\Parameters\ParameterTranslator;
 use PDO;
-use PhpMyAdmin\SqlParser\Lexer;
-use PhpMyAdmin\SqlParser\Token;
 
 class SpannerStatement implements IteratorAggregate, Statement
 {
     public const PARAMETERS_NONE = '';
     public const PARAMETERS_NAMED = 'named';
     public const PARAMETERS_POSITIONAL = 'positional';
+
+    /** @var ParameterTranslator */
+    private $parameterTranslator;
 
     /** @var Database */
     protected $database;
@@ -45,119 +46,38 @@ class SpannerStatement implements IteratorAggregate, Statement
     /** @var array */
     protected $boundValues = [];
 
-    /** @var string */
-    protected $parameterSyntax = self::PARAMETERS_NONE;
-
-    /** @var int */
-    protected $positionalParameterCount = 0;
-
     /** @var int */
     protected $affectedRows = 0;
 
     /**
      * SpannerStatement constructor.
      *
-     * @param Database $database
-     * @param string   $sql
+     * @param Database                 $database
+     * @param string                   $sql
+     * @param ParameterTranslator|null $parameterTranslator
      *
      * @throws InvalidArgumentException when the sql statement uses both named and positional parameters.
      */
-    public function __construct(Database $database, string $sql)
+    public function __construct(Database $database, string $sql, ?ParameterTranslator $parameterTranslator = null)
     {
         $this->database = $database;
-        $this->sql = $this->translateParameterPlaceHolders($sql);
+
+        // Falls back to new instance of ParameterTranslator.
+        if ($parameterTranslator === null) {
+            $parameterTranslator = new ParameterTranslator();
+        }
+        $this->parameterTranslator = $parameterTranslator;
+
+        $this->sql = $this->parameterTranslator->translatePlaceHolders($sql);
     }
 
     /**
-     * Detects the optional parameter syntax.
-     * DBAL and Spanner are both named so can be compatible.
-     * Named and positional syntaxes are not compatible.
+     * @param mixed $param
+     * @param mixed $value
+     * @param int   $type
      *
-     * @param string $sql
-     *
-     * @return string One of the PARAMETERS_* constants.
-     * @throws InvalidArgumentException when both syntax types are used in the same statement.
+     * @return bool|void
      */
-    public function translateParameterPlaceHolders(string $sql): string
-    {
-        if (strpos($sql, ':') === false && strpos($sql, '?') === false) {
-            return $sql;
-        }
-
-        $named = 0;
-        $tokenList = Lexer::getTokens($sql);
-        $translatedSql = '';
-        foreach ($tokenList->tokens as $token) {
-            if ($token->type === Token::TYPE_SYMBOL) {
-                if ($token->token === '?') {
-                    $this->positionalParameterCount++;
-                    $translatedSql .= '@param' . $this->positionalParameterCount;
-                } elseif (substr($token->token, 0, 1) === ':') {
-                    $translatedSql .= str_replace(':', '@', $token->token);
-                    $named++;
-                } elseif (substr($token->token, 0, 1) === '@') {
-                    $translatedSql .= $token->token;
-                    $named++;
-                } else {
-                    $translatedSql .= $token->token;
-                }
-            } else {
-                $translatedSql .= $token->token;
-            }
-        }
-
-        if ($named && $this->positionalParameterCount) {
-            throw new InvalidArgumentException(
-                sprintf("Statement '%s' can not use both named and positional parameters.", $sql)
-            );
-        }
-
-        return $translatedSql;
-    }
-
-    /**
-     * Translates the positional parameters into named parameters.
-     *
-     * @param array $params
-     *
-     * @return array
-     * @throws InvalidArgumentException when a wrong number of parameters is provided.
-     */
-    public function translatePositionalParameterNames(array $params = null): array
-    {
-        // Positional parameters first index.
-        $offset = 0;
-        if ($params === null) {
-            $params = $this->boundValues;
-            $offset = 1;
-        }
-
-        // Named parameters don't have numeric keys.
-        if (!array_key_exists($offset, $params)) {
-            return $params;
-        }
-
-        // Assert number of parameters.
-        if ($this->positionalParameterCount !== count($params)) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    "The statement '%s' expects exactly %d parameters, %d found.",
-                    preg_replace('/@param[0-9]+/', '?', $this->sql),
-                    $this->positionalParameterCount,
-                    count($params)
-                )
-            );
-        }
-
-        // Generates 1-based sequenced parameter names.
-        $namedParameters = [];
-        for ($i = 0; $i < count($params); $i++) {
-            $namedParameters ['param' . ($i + 1)] = $params[$i + $offset];
-        }
-
-        return $namedParameters;
-    }
-
     public function bindValue($param, $value, $type = ParameterType::STRING)
     {
         $this->boundValues[$param] = $value;
@@ -190,7 +110,7 @@ class SpannerStatement implements IteratorAggregate, Statement
     public function execute($params = null): bool
     {
         try {
-            $parameters = $this->translatePositionalParameterNames($params);
+            $parameters = $this->parameterTranslator->convertPositionalToNamed($this->sql, $this->boundValues, $params);
 
             if ($this->isDmlStatement($this->sql)) {
                 $statement = $this->sql;
@@ -199,7 +119,7 @@ class SpannerStatement implements IteratorAggregate, Statement
                         $this->affectedRows = $t->executeUpdate($statement, ['parameters' => $parameters]);
                         $t->commit();
 
-                        return (bool) $this->affectedRows;
+                        return (bool)$this->affectedRows;
                     }
                 );
             }
@@ -215,6 +135,11 @@ class SpannerStatement implements IteratorAggregate, Statement
         return true;
     }
 
+    /**
+     * @param $statement
+     *
+     * @return bool
+     */
     public function isDmlStatement($statement)
     {
         $statement = ltrim($statement);
@@ -224,6 +149,9 @@ class SpannerStatement implements IteratorAggregate, Statement
             || stripos($statement, 'DELETE ') === 0;
     }
 
+    /**
+     * @return int
+     */
     public function rowCount()
     {
         if ($this->isDmlStatement($this->sql)) {
@@ -259,6 +187,14 @@ class SpannerStatement implements IteratorAggregate, Statement
         $this->defaultFetchMode = $modes[$fetchMode] ?? Result::RETURN_ASSOCIATIVE;
     }
 
+    /**
+     * @param null $fetchMode
+     * @param int  $cursorOrientation
+     * @param int  $cursorOffset
+     *
+     * @return bool|false|mixed
+     * @throws InvalidArgumentException
+     */
     public function fetch($fetchMode = null, $cursorOrientation = PDO::FETCH_ORI_NEXT, $cursorOffset = 0)
     {
         if (!$this->result instanceof Result) {
@@ -281,6 +217,13 @@ class SpannerStatement implements IteratorAggregate, Statement
             : false;
     }
 
+    /**
+     * @param $cursorOrientation
+     * @param $cursorOffset
+     *
+     * @return int
+     * @throws InvalidArgumentException
+     */
     public function findOffset($cursorOrientation, $cursorOffset)
     {
         $lastRow = count($this->rows) - 1;
@@ -310,6 +253,8 @@ class SpannerStatement implements IteratorAggregate, Statement
                     ? -1
                     : $newOffset;
         }
+
+        throw new InvalidArgumentException('Unknown cursorOrientation ' . $cursorOrientation . ' parameter.');
     }
 
     /**
@@ -318,8 +263,6 @@ class SpannerStatement implements IteratorAggregate, Statement
      * @param null $ctorArgs
      *
      * @return bool||mixed[]
-     * @throws InvalidArgumentException
-     * @throws BadRequestException
      */
     public function fetchAll($fetchMode = null, $fetchArgument = null, $ctorArgs = null)
     {
@@ -334,15 +277,15 @@ class SpannerStatement implements IteratorAggregate, Statement
             : $fetchMode;
 
         $this->rows = [];
-        foreach($this->result->rows($realMode) as $row) {
+        foreach ($this->result->rows($realMode) as $row) {
             $this->rows[] = $row;
         }
 
         // Optionally converts each line to a StdClass object.
         if ($fetchMode === PDO::FETCH_OBJ) {
             $this->rows = array_map(
-                function(array $row) {
-                    return (object) $row;
+                function (array $row) {
+                    return (object)$row;
                 },
                 $this->rows
             );
@@ -351,6 +294,12 @@ class SpannerStatement implements IteratorAggregate, Statement
         return $this->rows;
     }
 
+    /**
+     * @param int $columnIndex
+     *
+     * @return bool|false|mixed
+     * @throws InvalidArgumentException
+     */
     public function fetchColumn($columnIndex = 0)
     {
         $nextRow = $this->fetch(Result::RETURN_ZERO_INDEXED);
