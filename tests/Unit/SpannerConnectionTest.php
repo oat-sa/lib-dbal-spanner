@@ -192,4 +192,13 @@ class SpannerConnectionTest extends TestCase
         $database->expects($this->once())->method('insert')->with($tableName, $data);
         $this->getSpannerConnection(null, $database)->insert($tableName, $data);
     }
+
+    /**
+     * @dataProvider ddlQueriesProvider
+     * @param $query
+     */
+    public function testExecWithDdlQuery($query)
+    {
+        $this->assertEquals(0, $this->getSpannerConnection()->exec($query));
+    }
 }
