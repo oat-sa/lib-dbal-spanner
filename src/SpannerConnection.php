@@ -30,14 +30,10 @@ class SpannerConnection implements Connection
             return $this->cachedStatements[$prepareString];
         }
 
-        if ($this->database === null) {
-            $this->database = $this->_conn->database;
-        }
         $statement = new SpannerStatement($this->database, $prepareString);
         $this->cachedStatements[$prepareString] = $statement;
 
         return $statement;
-
     }
 
     public function query()
