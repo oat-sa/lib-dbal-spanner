@@ -57,8 +57,7 @@ class SpannerDriver implements Driver
 
         $this->instance = $this->getInstance($this->instanceName);
 
-        $connection = new SpannerConnection();
-        $connection->setDatabase($this->selectDatabase($this->databaseName));
+        $connection = new SpannerConnection($this, $this->selectDatabase($this->databaseName));
 
         return $connection;
     }
