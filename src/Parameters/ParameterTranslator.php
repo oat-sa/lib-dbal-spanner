@@ -78,14 +78,13 @@ class ParameterTranslator
     /**
      * Translates the positional parameters into named parameters.
      *
-     * @param string $sql
      * @param array $boundValues
      * @param array $params
      *
      * @return array
      * @throws InvalidArgumentException when a wrong number of parameters is provided.
      */
-    public function convertPositionalToNamed(string $sql, array $boundValues, array $params = null): array
+    public function convertPositionalToNamed(array $boundValues, array $params = null): array
     {
         // Positional parameters first index.
         $offset = 0;
@@ -103,8 +102,7 @@ class ParameterTranslator
         if ($this->positionalParameterCount !== count($params)) {
             throw new InvalidArgumentException(
                 sprintf(
-                    "The statement '%s' expects exactly %d parameters, %d found.",
-                    preg_replace('/@param[0-9]+/', '?', $sql),
+                    'Expected exactly %d parameter(s), %d found',
                     $this->positionalParameterCount,
                     count($params)
                 )

@@ -32,12 +32,11 @@ use Google\Cloud\Spanner\Transaction;
 use IteratorAggregate;
 use OAT\Library\DBALSpanner\Parameters\ParameterTranslator;
 use PDO;
+use Psr\Log\LoggerAwareTrait;
 
 class SpannerStatement implements IteratorAggregate, Statement
 {
-    public const PARAMETERS_NONE = '';
-    public const PARAMETERS_NAMED = 'named';
-    public const PARAMETERS_POSITIONAL = 'positional';
+    use LoggerAwareTrait;
 
     /** @var ParameterTranslator */
     private $parameterTranslator;
@@ -48,7 +47,11 @@ class SpannerStatement implements IteratorAggregate, Statement
     /** @var string */
     protected $sql;
 
-    /** @var Result|null The result set resource to fetch. */
+    /**
+     * The result set resource to fetch.
+     *
+     * @var Result|null
+     */
     protected $result;
 
     /** @var array */
@@ -65,6 +68,13 @@ class SpannerStatement implements IteratorAggregate, Statement
 
     /** @var int */
     protected $affectedRows = 0;
+
+    /**
+     * Do we return objects instead of arrays?
+     *
+     * @var bool
+     */
+    protected $fetchObjects = false;
 
     /**
      * SpannerStatement constructor.
@@ -127,8 +137,19 @@ class SpannerStatement implements IteratorAggregate, Statement
     public function execute($params = null): bool
     {
         try {
-            $parameters = $this->parameterTranslator->convertPositionalToNamed($this->sql, $this->boundValues, $params);
+            $parameters = $this->parameterTranslator->convertPositionalToNamed($this->boundValues, $params);
+        } catch (InvalidArgumentException $exception) {
+            $this->logger->error(
+                sprintf(
+                    "%s in the statement '%s'.",
+                    $exception->getMessage(),
+                    preg_replace('/@param[0-9]+/', '?', $this->sql)
+                )
+            );
+            return false;
+        }
 
+        try {
             if ($this->isDmlStatement($this->sql)) {
                 $statement = $this->sql;
                 return $this->database->runTransaction(
@@ -167,6 +188,9 @@ class SpannerStatement implements IteratorAggregate, Statement
     }
 
     /**
+     * For DML, returns the number of affected rows.
+     * For SQL, returns the number of rows in the result set.
+     *
      * @return int
      */
     public function rowCount()
@@ -235,13 +259,13 @@ class SpannerStatement implements IteratorAggregate, Statement
     }
 
     /**
-     * @param $cursorOrientation
-     * @param $cursorOffset
+     * @param     $cursorOrientation
+     * @param int $cursorOffset
      *
      * @return int
      * @throws InvalidArgumentException
      */
-    public function findOffset($cursorOrientation, $cursorOffset)
+    public function findOffset($cursorOrientation, $cursorOffset = 0)
     {
         $lastRow = count($this->rows) - 1;
 
@@ -252,16 +276,20 @@ class SpannerStatement implements IteratorAggregate, Statement
                     : $this->offset + 1;
 
             case PDO::FETCH_ORI_PRIOR:
-                return $this->offset - 1;
+                return $this->offset === -1
+                    ? -1
+                    : $this->offset - 1;
 
             case PDO::FETCH_ORI_FIRST:
-                return 0;
+                return $lastRow === -1 ? -1 : 0;
 
             case PDO::FETCH_ORI_LAST:
                 return $lastRow;
 
             case PDO::FETCH_ORI_ABS:
-                return $cursorOffset;
+                return $cursorOffset < 0 || $cursorOffset > $lastRow
+                    ? -1
+                    : $cursorOffset;
 
             case PDO::FETCH_ORI_REL:
                 $newOffset = $this->offset + $cursorOffset;
@@ -275,9 +303,9 @@ class SpannerStatement implements IteratorAggregate, Statement
     }
 
     /**
-     * @param null $fetchMode
-     * @param null $fetchArgument
-     * @param null $ctorArgs
+     * @param int|null     $fetchMode
+     * @param int|null     $fetchArgument
+     * @param mixed[]|null $ctorArgs
      *
      * @return bool||mixed[]
      */
@@ -287,11 +315,7 @@ class SpannerStatement implements IteratorAggregate, Statement
             return false;
         }
 
-        $fetchMode = $fetchMode ?: $this->defaultFetchMode;
-
-        $realMode = $fetchMode === PDO::FETCH_OBJ
-            ? Result::RETURN_ASSOCIATIVE
-            : $fetchMode;
+        $realMode = $this->getRealMode($fetchMode);
 
         $this->rows = [];
         foreach ($this->result->rows($realMode) as $row) {
@@ -299,7 +323,7 @@ class SpannerStatement implements IteratorAggregate, Statement
         }
 
         // Optionally converts each line to a StdClass object.
-        if ($fetchMode === PDO::FETCH_OBJ) {
+        if ($this->fetchObjects) {
             $this->rows = array_map(
                 function (array $row) {
                     return (object)$row;
@@ -309,6 +333,24 @@ class SpannerStatement implements IteratorAggregate, Statement
         }
 
         return $this->rows;
+    }
+
+    /**
+     * @param int|null $fetchMode
+     *
+     * @return string|int
+     */
+    public function getRealMode($fetchMode)
+    {
+        $fetchMode = $fetchMode ?: $this->defaultFetchMode;
+
+        if ($fetchMode === PDO::FETCH_OBJ) {
+            $this->fetchObjects = true;
+            return Result::RETURN_ASSOCIATIVE;
+        }
+
+        $this->fetchObjects = false;
+        return $fetchMode;
     }
 
     /**
