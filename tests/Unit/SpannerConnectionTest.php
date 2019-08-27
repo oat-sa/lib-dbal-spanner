@@ -4,6 +4,7 @@ namespace OAT\Library\DBALSpanner\Tests\Unit;
 
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Transaction;
 use OAT\Library\DBALSpanner\SpannerConnection;
@@ -200,5 +201,46 @@ class SpannerConnectionTest extends TestCase
     public function testExecWithDdlQuery($query)
     {
         $this->assertEquals(0, $this->getSpannerConnection()->exec($query));
+    }
+
+    public function updateDataProviderWithNull()
+    {
+        return [
+//            ['logs', ['name' => null], ['id' => 1], 'UPDATE logs SET name =  WHERE id = 1'],
+            ['customers', ['name' => 'test'], ['payment' => null], 'UPDATE customers SET name = "test" WHERE payment IS NULL'],
+        ];
+    }
+
+    /**
+     * @dataProvider updateDataProviderWithNull
+     * @param $tableName
+     * @param $data
+     * @param $identifiers
+     * @param $expectedQuery
+     * @throws InvalidArgumentException
+     */
+    public function testUpdateWithNullExpression($tableName, $data, $identifiers, $expectedQuery)
+    {
+        $platform = $this->createMock(AbstractPlatform::class);
+        $platform->expects($this->any())
+            ->method('getIsNullExpression')
+            ->will($this->returnCallback(function() { return func_get_arg(0) . ' IS NULL'; }));
+
+        $driver = $this->createConfiguredMock(Driver::class, ['getDatabasePlatform' => $platform]);
+
+        $transaction = $this->createMock(Transaction::class);
+        $transaction->expects($this->once())->method('commit');
+        $transaction->expects($this->once())->method('executeUpdate')->will($this->returnCallback(function ($arg) { return $arg; }));
+
+        $database = $this->createMock(Database::class);
+        $database->expects($this->atLeastOnce())
+            ->method('runTransaction')
+            ->with($this->callback(function($closure) use ($transaction, $expectedQuery) {
+                return $closure($transaction) == $expectedQuery;
+            }))
+        ;
+
+        $connection = $this->getSpannerConnection($driver, $database);
+        $connection->update($tableName, $data, $identifiers);
     }
 }
