@@ -203,7 +203,7 @@ class SpannerConnectionTest extends TestCase
         $this->assertEquals(0, $this->getSpannerConnection()->exec($query));
     }
 
-    public function testUpdateWithNullExpression()
+    public function updateDataProviderWithNull()
     {
         return [
 //            ['logs', ['name' => null], ['id' => 1], 'UPDATE logs SET name =  WHERE id = 1'],
