@@ -22,14 +22,30 @@ declare(strict_types=1);
 namespace OAT\Library\DBALSpanner;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\InvalidArgumentException;
+use Google\Cloud\Spanner\Timestamp;
 
+/**
+ * Class SpannerConnectionWrapper
+ * @package OAT\Library\DBALSpanner
+ *
+ * @property SpannerConnection $_conn
+ */
 class SpannerConnectionWrapper extends Connection
 {
+
+    /**
+     * @param string $prepareString
+     * @return SpannerStatement
+     */
     public function prepare($prepareString)
     {
         return $this->_conn->prepare($prepareString);
     }
 
+    /**
+     * @return SpannerStatement
+     */
     public function query()
     {
         $args = func_get_args();
@@ -37,21 +53,46 @@ class SpannerConnectionWrapper extends Connection
         return $this->_conn->query($args[0]);
     }
 
+    /**
+     * @param string $tableExpression
+     * @param array $identifier
+     * @param array $types
+     * @return int|mixed
+     * @throws InvalidArgumentException
+     */
     public function delete($tableExpression, array $identifier, array $types = [])
     {
         return $this->_conn->delete($tableExpression, $identifier);
     }
 
+    /**
+     * @param string $tableExpression
+     * @param array $data
+     * @param array $identifier
+     * @param array $types
+     * @return int|mixed
+     * @throws InvalidArgumentException
+     */
     public function update($tableExpression, array $data, array $identifier, array $types = [])
     {
-        return $this->_conn->update($tableExpression, $data);
+        return $this->_conn->update($tableExpression, $data, $identifier);
     }
 
+    /**
+     * @param string $tableExpression
+     * @param array $data
+     * @param array $types
+     * @return Timestamp|int
+     */
     public function insert($tableExpression, array $data, array $types = [])
     {
         return $this->_conn->insert($tableExpression, $data);
     }
 
+    /**
+     * @param string $statement
+     * @return int|mixed
+     */
     public function exec($statement)
     {
         return $this->_conn->exec($statement);
