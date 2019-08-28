@@ -132,7 +132,6 @@ class SpannerStatement implements IteratorAggregate, Statement
      * @param array $params
      *
      * @return bool
-     * @throws InvalidArgumentException when a wrong number of parameters is provided.
      */
     public function execute($params = null): bool
     {
@@ -149,28 +148,29 @@ class SpannerStatement implements IteratorAggregate, Statement
             return false;
         }
 
-        try {
-            if ($this->isDmlStatement($this->sql)) {
-                $statement = $this->sql;
-                return $this->database->runTransaction(
-                    function (Transaction $t) use ($statement, $parameters) {
-                        $this->affectedRows = $t->executeUpdate($statement, ['parameters' => $parameters]);
-                        $t->commit();
-
-                        return (bool)$this->affectedRows;
-                    }
-                );
-            }
-
+        // DML statement is executed with a direct call to database execute.
+        if (!$this->isDmlStatement($this->sql)) {
             $this->result = $this->database->execute($this->sql, ['parameters' => $parameters]);
             $this->rows = null;
-        } catch (\Exception $exception) {
-            var_dump($exception->getMessage());
-            debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-            return false;
+            return true;
         }
 
-        return true;
+        // DML statement is executed within a transaction.
+        try {
+            return $this->database->runTransaction(
+                function (Transaction $t) use ($parameters) {
+                    $this->affectedRows = $t->executeUpdate($this->sql, ['parameters' => $parameters]);
+                    $t->commit();
+                    $this->result = null;
+                    $this->rows = null;
+
+                    return (bool)$this->affectedRows;
+                }
+            );
+        } catch (\Exception $exception) {
+            $this->logger->error($exception->getMessage());
+            return false;
+        }
     }
 
     /**

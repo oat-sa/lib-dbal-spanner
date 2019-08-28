@@ -24,11 +24,14 @@ use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Doctrine\DBAL\FetchMode;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Result;
+use Google\Cloud\Spanner\Transaction;
 use OAT\Library\DBALSpanner\Parameters\ParameterTranslator;
 use OAT\Library\DBALSpanner\SpannerStatement;
 use PDO;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LogLevel;
+use Psr\Log\Test\TestLogger;
 
 class SpannerStatementTest extends TestCase
 {
@@ -40,10 +43,13 @@ class SpannerStatementTest extends TestCase
 
     public function setUp(): void
     {
-        $this->database = $this->createConfiguredMock(Database::class, []);
+        $this->database = $this->getMockBuilder(Database::class)
+            ->disableOriginalConstructor()
+            ->setMethods(['execute', 'runTransaction'])
+            ->getMock();
         $this->parameterTranslator = $this->getMockBuilder(ParameterTranslator::class)
             ->disableOriginalConstructor()
-            ->setMethods(['translatePlaceHolders'])
+            ->setMethods(['translatePlaceHolders', 'convertPositionalToNamed'])
             ->getMock();
     }
 
@@ -97,10 +103,96 @@ class SpannerStatementTest extends TestCase
         $subject->bindParam('column', $variable);
     }
 
-    // TODO:
-    public function testExecute()
+    public function testExecuteWithWrongNumberOfParametersLogsMessageAndReturnsFalse()
     {
-        $this->markTestIncomplete();
+        $originalSql = 'sql string with ? placeholder';
+        $newSql = 'sql string with @param1 placeholder';
+        $message = 'error mesasge from parameter translator';
+
+        $this->parameterTranslator->method('translatePlaceHolders')->with($originalSql)->willReturn($newSql);
+        $this->parameterTranslator->method('convertPositionalToNamed')->willThrowException(new InvalidArgumentException($message));
+
+        $logger = new TestLogger();
+
+        $subject = new SpannerStatement($this->database, $originalSql, $this->parameterTranslator);
+        $subject->setLogger($logger);
+
+        $this->assertFalse($subject->execute());
+        $this->assertTrue($logger->hasRecordThatContains($message . ' in the statement \'' . $originalSql . '\'.', LogLevel::ERROR));
+    }
+
+    public function testExecuteWithNonDmlStatementRunsDatabaseExecuteAndEmptiesRowsAndReturnsTrue()
+    {
+        $originalSql = 'sql string with ? placeholder';
+        $newSql = 'sql string with @param1 placeholder';
+        $parameters = ['param1' => 'value1'];
+
+        $result = $this->getMockBuilder(Result::class);
+
+        $this->parameterTranslator->method('translatePlaceHolders')->with($originalSql)->willReturn($newSql);
+        $this->parameterTranslator->method('convertPositionalToNamed')->willReturnArgument(1);
+
+        $this->database->method('execute')->with($newSql, ['parameters' => $parameters])->willReturn($result);
+
+        $subject = new SpannerStatement($this->database, $originalSql, $this->parameterTranslator);
+
+        $this->assertTrue($subject->execute($parameters));
+        $this->assertEquals($result, $this->getPrivateProperty($subject, 'result'));
+        $this->assertNull($this->getPrivateProperty($subject, 'rows'));
+    }
+
+    public function testExecuteWithDmlStatementAndExceptionInRunningTransactionLogsErrorAndReturnsFalse()
+    {
+        $originalSql = 'delete string with ? placeholder';
+        $newSql = 'delete string with @param1 placeholder';
+        $parameters = ['param1' => 'value1'];
+        $message = 'the exception message';
+
+        $this->parameterTranslator->method('translatePlaceHolders')->with($originalSql)->willReturn($newSql);
+        $this->parameterTranslator->method('convertPositionalToNamed')->willReturnArgument(1);
+
+        $this->database->method('runTransaction')->willThrowException(new \Exception($message));
+
+        $logger = new TestLogger();
+
+        $subject = new SpannerStatement($this->database, $originalSql, $this->parameterTranslator);
+        $subject->setLogger($logger);
+
+        $this->assertFalse($subject->execute($parameters));
+        $this->assertTrue($logger->hasRecordThatContains($message, LogLevel::ERROR));
+    }
+
+    public function testExecuteWithDmlStatementExecutesQueryWithinTransaction()
+    {
+        $originalSql = 'delete string with ? placeholder';
+        $newSql = 'delete string with @param1 placeholder';
+        $parameters = ['param1' => 'value1'];
+        $affectedRows = 12;
+
+        $this->parameterTranslator->method('translatePlaceHolders')->with($originalSql)->willReturn($newSql);
+        $this->parameterTranslator->method('convertPositionalToNamed')->willReturnArgument(1);
+
+        $transaction = $this->getMockBuilder(Transaction::class)
+            ->disableOriginalConstructor()
+            ->setMethods(['executeUpdate','commit'])
+            ->getMock();
+        $transaction->method('executeUpdate')->with($newSql, ['parameters' => $parameters])->willReturn($affectedRows);
+        $transaction->expects($this->once())->method('commit');
+
+        $this->database->method('runTransaction')
+            ->with($this->callback(
+                function($closure) use ($transaction) {
+                    return $closure($transaction);
+                }
+            ))
+            ->willReturn(true);
+
+        $subject = new SpannerStatement($this->database, $originalSql, $this->parameterTranslator);
+
+        $this->assertTrue($subject->execute($parameters));
+        $this->assertEquals($affectedRows, $this->getPrivateProperty($subject, 'affectedRows'));
+        $this->assertNull($this->getPrivateProperty($subject, 'result'));
+        $this->assertNull($this->getPrivateProperty($subject, 'rows'));
     }
 
     /**
@@ -370,9 +462,11 @@ class SpannerStatementTest extends TestCase
     }
 
     // TODO:
-    public function testFetchColumn()
+    public function testFetchColumnWithNoResultReturnsFalse()
     {
-        $this->markTestIncomplete();
+        $subject = new SpannerStatement($this->database, '', $this->parameterTranslator);
+
+        $this->assertFalse($subject->fetchColumn());
     }
 
     private function getPrivateProperty($object, $propertyName)
