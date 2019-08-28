@@ -51,9 +51,14 @@ class SpannerDriverTest extends  TestCase
 
         $this->assertInstanceOf(SpannerConnection::class, $connection);
         $this->assertEquals('titi', $driver->getDatabase($this->createMock(Connection::class)));
+
         $databaseNameProperty = new \ReflectionProperty(SpannerDriver::class, 'instanceName');
         $databaseNameProperty->setAccessible(true);
         $this->assertEquals('toto', $databaseNameProperty->getValue($driver));
+
+        $driverProperty = new \ReflectionProperty(SpannerConnection::class, 'driver');
+        $driverProperty->setAccessible(true);
+        $this->assertSame($driver, $driverProperty->getValue($connection));
     }
 
     public function testSelectDatabaseNotFoundWithException()
