@@ -22,6 +22,7 @@ declare(strict_types=1);
 namespace OAT\Library\DBALSpanner;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver;
 use Google\Cloud\Core\Exception\GoogleException;
 use Google\Cloud\Core\Exception\NotFoundException;
@@ -49,7 +50,7 @@ class SpannerDriver implements Driver
      *
      * @throws LogicException When a parameter is missing or ext/grpc is missing or the instance does not exist.
      * @throws NotFoundException when database does not exist.
-     * @throws \Doctrine\DBAL\DBALException
+     * @throws DBALException
      */
     public function connect(array $params, $username = null, $password = null, array $driverOptions = [])
     {
@@ -165,6 +166,7 @@ class SpannerDriver implements Driver
         if ($instanceName === '') {
             $instanceName = $this->instanceName;
         }
+
         $databaseList = [];
         foreach ($this->getInstance($instanceName)->databases() as $database) {
             if ($database instanceof Database) {
