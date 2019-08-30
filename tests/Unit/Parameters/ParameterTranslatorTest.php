@@ -21,10 +21,13 @@ namespace Oat\DbalSpanner\Tests\Unit\Parameters;
 
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use OAT\Library\DBALSpanner\Parameters\ParameterTranslator;
+use OAT\Library\DBALSpanner\Tests\_helpers\NoPrivacyTrait;
 use PHPUnit\Framework\TestCase;
 
 class ParameterTranslatorTest extends TestCase
 {
+    use NoPrivacyTrait;
+
     /** @var ParameterTranslator */
     protected $subject;
 
@@ -125,23 +128,5 @@ class ParameterTranslatorTest extends TestCase
             [['param1' => $value1, 'param2' => $value2], [], [$value1, $value2]],
             [['param1' => $value1, 'param2' => $value2], [$numericKey1 => $value1, $numericKey2 => $value2], null],
         ];
-    }
-
-    private function getPrivateProperty($object, $propertyName)
-    {
-        $property = new \ReflectionProperty(get_class($object), $propertyName);
-        $property->setAccessible(true);
-        $value = $property->getValue($object);
-        $property->setAccessible(false);
-
-        return $value;
-    }
-
-    private function setPrivateProperty($object, $propertyName, $value)
-    {
-        $property = new \ReflectionProperty(get_class($object), $propertyName);
-        $property->setAccessible(true);
-        $property->setValue($object, $value);
-        $property->setAccessible(false);
     }
 }

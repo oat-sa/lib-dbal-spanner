@@ -54,7 +54,7 @@ class SpannerPlatform extends AbstractPlatform
 
     public function getListTableColumnsSQL($table, $database = null)
     {
-        return 'SELECT column_name AS Field, spanner_type AS Type, is_nullable AS `Null`, "" AS `Key`, "" AS `Default`, "" AS Extra, "" AS Comment 
+        return 'SELECT column_name AS Field, spanner_type AS Type, is_nullable AS `Null`, "" AS `Key`, "" AS `Default`, "" AS Extra, "" AS Comment
       FROM information_schema.columns
       WHERE table_name = "' . $table . '"
       AND table_catalog = "" 
@@ -64,7 +64,7 @@ class SpannerPlatform extends AbstractPlatform
 
     public function getListTableIndexesSQL($table, $currentDatabase = null)
     {
-        return 'SELECT is_unique AS Non_Unique, i.index_name AS Key_name, column_name AS Column_Name, "" AS Sub_Part, i.index_type AS Index_Type 
+        return 'SELECT is_unique AS Non_Unique, i.index_name AS Key_name, column_name AS Column_Name, "" AS Sub_Part, i.index_type AS Index_Type
       FROM information_schema.indexes i
       INNER JOIN information_schema.index_columns ic
               ON i.table_name = ic.table_name

@@ -29,21 +29,9 @@ use Doctrine\DBAL\Types\Type;
 
 class SpannerSchemaManager extends AbstractSchemaManager
 {
-    /** @var SpannerDriver */
-    protected $driver;
-
-    /**
-     * Constructor. Accepts the Connection instance to manage the schema for.
-     */
-    public function __construct(Connection $conn, ?AbstractPlatform $platform = null)
-    {
-        parent::__construct($conn, $platform);
-        $this->driver = $conn->getDriver();
-    }
-
     public function listDatabases()
     {
-        return $this->driver->listDatabases();
+        return $this->_conn->getDriver()->listDatabases();
     }
 
     public function createDatabase($databaseName): Void

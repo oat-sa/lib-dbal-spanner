@@ -9,12 +9,13 @@ use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Transaction;
 use OAT\Library\DBALSpanner\SpannerConnection;
 use OAT\Library\DBALSpanner\SpannerStatement;
+use OAT\Library\DBALSpanner\Tests\_helpers\NoPrivacyTrait;
 use PHPUnit\Framework\TestCase;
-use ReflectionException;
-use ReflectionProperty;
 
 class SpannerConnectionTest extends TestCase
 {
+    use NoPrivacyTrait;
+
     protected function getSpannerConnection(Driver $driver = null, Database $database = null)
     {
         if (null === $driver) {
@@ -35,13 +36,9 @@ class SpannerConnectionTest extends TestCase
 
         $this->assertInstanceOf(SpannerStatement::class, $statement);
 
-        $property = new ReflectionProperty(SpannerStatement::class, 'sql');
-        $property->setAccessible(true);
-        $this->assertEquals('sql-query', $property->getValue($statement));
+        $this->assertEquals('sql-query', $this->getPrivateProperty($statement, 'sql'));
 
-        $property = new ReflectionProperty(SpannerConnection::class, 'cachedStatements');
-        $property->setAccessible(true);
-        $cachedStatements = $property->getValue($connection);
+        $cachedStatements = $this->getPrivateProperty($connection, 'cachedStatements');
 
         $this->assertArrayHasKey('sql-query', $cachedStatements);
         $this->assertEquals($statement, $cachedStatements['sql-query']);
@@ -51,9 +48,7 @@ class SpannerConnectionTest extends TestCase
     {
         $connection = $this->getSpannerConnection();
 
-        $property = new ReflectionProperty(SpannerConnection::class, 'cachedStatements');
-        $property->setAccessible(true);
-        $property->setValue($connection, ['sql-query' => 'preparedStatement']);
+        $this->setPrivateProperty($connection, 'cachedStatements', ['sql-query' => 'preparedStatement']);
 
         $this->assertEquals('preparedStatement', $connection->prepare('sql-query'));
     }
@@ -64,9 +59,7 @@ class SpannerConnectionTest extends TestCase
         $statement = $this->createMock(SpannerStatement::class);
         $statement->expects($this->once())->method('execute');
 
-        $property = new ReflectionProperty(SpannerConnection::class, 'cachedStatements');
-        $property->setAccessible(true);
-        $property->setValue($connection, ['sql-query' => $statement]);
+        $this->setPrivateProperty($connection, 'cachedStatements', ['sql-query' => $statement]);
 
         $this->assertEquals($statement, $connection->query('sql-query'));
     }
@@ -81,10 +74,10 @@ class SpannerConnectionTest extends TestCase
     }
 
     /**
-     * @todo adapt this test when DDL is implemented
+     * @todo         adapt this test when DDL is implemented
      * @dataProvider ddlQueriesProvider
+     *
      * @param $query
-     * @throws ReflectionException
      */
     public function testQueryWithDdl($query)
     {
@@ -92,38 +85,40 @@ class SpannerConnectionTest extends TestCase
 
         $this->assertNull($connection->query($query));
 
-        $property = new ReflectionProperty(SpannerConnection::class, 'cachedStatements');
-        $property->setAccessible(true);
-        $this->assertEmpty($property->getValue($connection));
+        $this->assertEmpty($this->getPrivateProperty($connection, 'cachedStatements'));
     }
 
     public function deleteDataProvider()
     {
         return [
             ['users', ['identifier' => 1], 'DELETE FROM users WHERE identifier = 1'],
-            ['events', ['event_id' => 1, 'id' => 4 ], 'DELETE FROM events WHERE event_id = 1 AND id = 4'],
-            ['test-takers',  ['firstname' => 'firstname', 'lastname' => 'lastname' ], 'DELETE FROM test-takers WHERE firstname = "firstname" AND lastname = "lastname"'],
+            ['events', ['event_id' => 1, 'id' => 4], 'DELETE FROM events WHERE event_id = 1 AND id = 4'],
+            ['test-takers', ['firstname' => 'firstname', 'lastname' => 'lastname'], 'DELETE FROM test-takers WHERE firstname = "firstname" AND lastname = "lastname"'],
         ];
     }
 
     /**
      * @dataProvider deleteDataProvider
+     *
      * @param $tableName
      * @param $identifiers
      * @param $expectedQuery
+     *
      * @throws InvalidArgumentException
      */
     public function testDelete($tableName, $identifiers, $expectedQuery)
     {
         $transaction = $this->createMock(Transaction::class);
         $transaction->expects($this->once())->method('commit');
-        $transaction->expects($this->once())->method('executeUpdate')->will($this->returnCallback(function ($arg) { return $arg; }));
+        $transaction->expects($this->once())->method('executeUpdate')->will($this->returnCallback(function ($arg) {
+            return $arg;
+        }));
 
         $database = $this->createMock(Database::class);
         $database
             ->expects($this->once())
             ->method('runTransaction')
-            ->with($this->callback(function($closure) use ($transaction, $expectedQuery) {
+            ->with($this->callback(function ($closure) use ($transaction, $expectedQuery) {
                 return $closure($transaction) == $expectedQuery;
             }));
 
@@ -145,29 +140,33 @@ class SpannerConnectionTest extends TestCase
     {
         return [
             ['users', ['lastname' => 'fixture'], ['id' => 1], 'UPDATE users SET lastname = "fixture" WHERE id = 1'],
-            ['events', ['event_name' => 'name', 'event_log' => 4 ], ['name' => "fixture"], 'UPDATE events SET event_name = "name", event_log = 4 WHERE name = "fixture"'],
+            ['events', ['event_name' => 'name', 'event_log' => 4], ['name' => "fixture"], 'UPDATE events SET event_name = "name", event_log = 4 WHERE name = "fixture"'],
         ];
     }
 
     /**
      * @dataProvider updateDataProvider
+     *
      * @param $tableName
      * @param $data
      * @param $identifiers
      * @param $expectedQuery
+     *
      * @throws InvalidArgumentException
      */
     public function testUpdate($tableName, $data, $identifiers, $expectedQuery)
     {
         $transaction = $this->createMock(Transaction::class);
         $transaction->expects($this->once())->method('commit');
-        $transaction->expects($this->once())->method('executeUpdate')->will($this->returnCallback(function ($arg) { return $arg; }));
+        $transaction->expects($this->once())->method('executeUpdate')->will($this->returnCallback(function ($arg) {
+            return $arg;
+        }));
 
         $database = $this->createMock(Database::class);
         $database
             ->expects($this->once())
             ->method('runTransaction')
-            ->with($this->callback(function($closure) use ($transaction, $expectedQuery) {
+            ->with($this->callback(function ($closure) use ($transaction, $expectedQuery) {
                 return $closure($transaction) == $expectedQuery;
             }));
 
@@ -196,6 +195,7 @@ class SpannerConnectionTest extends TestCase
 
     /**
      * @dataProvider ddlQueriesProvider
+     *
      * @param $query
      */
     public function testExecWithDdlQuery($query)
@@ -206,17 +206,19 @@ class SpannerConnectionTest extends TestCase
     public function updateDataProviderWithNull()
     {
         return [
-//            ['logs', ['name' => null], ['id' => 1], 'UPDATE logs SET name =  WHERE id = 1'],
+            //            ['logs', ['name' => null], ['id' => 1], 'UPDATE logs SET name =  WHERE id = 1'],
             ['customers', ['name' => 'test'], ['payment' => null], 'UPDATE customers SET name = "test" WHERE payment IS NULL'],
         ];
     }
 
     /**
      * @dataProvider updateDataProviderWithNull
+     *
      * @param $tableName
      * @param $data
      * @param $identifiers
      * @param $expectedQuery
+     *
      * @throws InvalidArgumentException
      */
     public function testUpdateWithNullExpression($tableName, $data, $identifiers, $expectedQuery)
@@ -224,21 +226,24 @@ class SpannerConnectionTest extends TestCase
         $platform = $this->createMock(AbstractPlatform::class);
         $platform->expects($this->any())
             ->method('getIsNullExpression')
-            ->will($this->returnCallback(function() { return func_get_arg(0) . ' IS NULL'; }));
+            ->will($this->returnCallback(function () {
+                return func_get_arg(0) . ' IS NULL';
+            }));
 
         $driver = $this->createConfiguredMock(Driver::class, ['getDatabasePlatform' => $platform]);
 
         $transaction = $this->createMock(Transaction::class);
         $transaction->expects($this->once())->method('commit');
-        $transaction->expects($this->once())->method('executeUpdate')->will($this->returnCallback(function ($arg) { return $arg; }));
+        $transaction->expects($this->once())->method('executeUpdate')->will($this->returnCallback(function ($arg) {
+            return $arg;
+        }));
 
         $database = $this->createMock(Database::class);
         $database->expects($this->atLeastOnce())
             ->method('runTransaction')
-            ->with($this->callback(function($closure) use ($transaction, $expectedQuery) {
+            ->with($this->callback(function ($closure) use ($transaction, $expectedQuery) {
                 return $closure($transaction) == $expectedQuery;
-            }))
-        ;
+            }));
 
         $connection = $this->getSpannerConnection($driver, $database);
         $connection->update($tableName, $data, $identifiers);

@@ -27,10 +27,13 @@ use OAT\Library\DBALSpanner\SpannerConnection;
 use OAT\Library\DBALSpanner\SpannerDriver;
 use OAT\Library\DBALSpanner\SpannerPlatform;
 use OAT\Library\DBALSpanner\SpannerSchemaManager;
+use OAT\Library\DBALSpanner\Tests\_helpers\NoPrivacyTrait;
 use PHPUnit\Framework\TestCase;
 
-class SpannerDriverTest extends  TestCase
+class SpannerDriverTest extends TestCase
 {
+    use NoPrivacyTrait;
+
     public function testConnect()
     {
         $instance = $this->createConfiguredMock(
@@ -38,27 +41,19 @@ class SpannerDriverTest extends  TestCase
             [
                 'databases' => [$this->createConfiguredMock(Database::class, ['name' => 'titi'])],
                 'name' => 'noname',
-                'database' => $this->createMock(Database::class)
+                'database' => $this->createMock(Database::class),
             ]
         );
         $driver = new SpannerDriver();
-        $property = new \ReflectionProperty(SpannerDriver::class, 'instance');
-        $property->setAccessible(true);
-        $property->setValue($driver, $instance);
+        $this->setPrivateProperty($driver, 'instance', $instance);
 
         $parameters = ['instance' => 'toto', 'dbname' => 'titi'];
         $connection = $driver->connect($parameters);
 
         $this->assertInstanceOf(SpannerConnection::class, $connection);
         $this->assertEquals('titi', $driver->getDatabase($this->createMock(Connection::class)));
-
-        $databaseNameProperty = new \ReflectionProperty(SpannerDriver::class, 'instanceName');
-        $databaseNameProperty->setAccessible(true);
-        $this->assertEquals('toto', $databaseNameProperty->getValue($driver));
-
-        $driverProperty = new \ReflectionProperty(SpannerConnection::class, 'driver');
-        $driverProperty->setAccessible(true);
-        $this->assertSame($driver, $driverProperty->getValue($connection));
+        $this->assertEquals('toto', $this->getPrivateProperty($driver, 'instanceName'));
+        $this->assertSame($driver, $this->getPrivateProperty($connection, 'driver'));
     }
 
     public function testSelectDatabaseNotFoundWithException()
@@ -72,13 +67,11 @@ class SpannerDriverTest extends  TestCase
                     $this->createConfiguredMock(Database::class, ['name' => 'still-not-exist']),
                 ],
                 'name' => 'instance-name',
-                'database' => $this->createMock(Database::class)
+                'database' => $this->createMock(Database::class),
             ]
         );
         $driver = new SpannerDriver();
-        $property = new \ReflectionProperty(SpannerDriver::class, 'instance');
-        $property->setAccessible(true);
-        $property->setValue($driver, $instance);
+        $this->setPrivateProperty($driver, 'instance', $instance);
 
         $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage(sprintf("Database '%s' does not exist on instance '%s'.", 'not-existing', 'instance-name'));
@@ -103,9 +96,7 @@ class SpannerDriverTest extends  TestCase
     public function testGetDatabase()
     {
         $driver = new SpannerDriver();
-        $databaseNameProperty = new \ReflectionProperty(SpannerDriver::class, 'databaseName');
-        $databaseNameProperty->setAccessible(true);
-        $databaseNameProperty->setValue($driver, 'fixture');
+        $this->setPrivateProperty($driver, 'databaseName', 'fixture');
         $this->assertEquals('fixture', $driver->getDatabase($this->createMock(Connection::class)));
     }
 
@@ -117,12 +108,13 @@ class SpannerDriverTest extends  TestCase
             [[]],
             [['dbname' => 'toto']],
             [['instance']],
-            [['dbname']]
+            [['dbname']],
         ];
     }
 
     /**
      * @dataProvider failedParseParametersProvider
+     *
      * @param $parameters
      */
     public function testFailedParseParameters($parameters)
@@ -145,13 +137,12 @@ class SpannerDriverTest extends  TestCase
                 'databases' => [
                     'database1',
                     $this->createConfiguredMock(Database::class, ['name' => 'salut']),
-                    $this->createConfiguredMock(Database::class, ['name' => '195.168.1.2/test.db'])]
+                    $this->createConfiguredMock(Database::class, ['name' => '195.168.1.2/test.db']),
+                ],
             ]
         );
         $driver = new SpannerDriver();
-        $property = new \ReflectionProperty(SpannerDriver::class, 'instance');
-        $property->setAccessible(true);
-        $property->setValue($driver, $instance);
+        $this->setPrivateProperty($driver, 'instance', $instance);
 
         $this->assertEquals(['salut', 'test.db'], $driver->listDatabases('test'));
     }
@@ -164,13 +155,8 @@ class SpannerDriverTest extends  TestCase
             ->willReturn([$this->createConfiguredMock(Database::class, ['name' => 'salut'])]);
 
         $driver = new SpannerDriver();
-        $instanceProperty = new \ReflectionProperty(SpannerDriver::class, 'instance');
-        $instanceProperty->setAccessible(true);
-        $instanceProperty->setValue($driver, $instance);
-
-        $nameProperty = new \ReflectionProperty(SpannerDriver::class, 'instanceName');
-        $nameProperty->setAccessible(true);
-        $nameProperty->setValue($driver, 'fixture');
+        $this->setPrivateProperty($driver, 'instance', $instance);
+        $this->setPrivateProperty($driver, 'instanceName', 'fixture');
 
         $this->assertEquals(['salut'], $driver->listDatabases(''));
     }

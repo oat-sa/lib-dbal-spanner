@@ -3,10 +3,13 @@
 namespace OAT\Library\DBALSpanner\Tests\Unit;
 
 use OAT\Library\DBALSpanner\SpannerKeywords;
+use OAT\Library\DBALSpanner\Tests\_helpers\NoPrivacyTrait;
 use PHPUnit\Framework\TestCase;
 
 class SpannerKeywordsTest extends TestCase
 {
+    use NoPrivacyTrait;
+
     public function testGetName(): void
     {
         $this->assertEquals('gcp-spanner', (new SpannerKeywords())->getName());
@@ -112,13 +115,9 @@ class SpannerKeywordsTest extends TestCase
             'WITHIN',
         ];
 
-        $class = new \ReflectionClass(SpannerKeywords::class);
-        $method = $class->getMethod('getKeywords');
-        $method->setAccessible(true);
-
         $this->assertEquals(
             $keywords,
-            $method->invokeArgs(new SpannerKeywords(), [])
+            $this->invokePrivateMethod(new SpannerKeywords(), 'getKeywords', [])
         );
     }
 }

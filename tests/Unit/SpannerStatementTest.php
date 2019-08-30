@@ -27,6 +27,7 @@ use Google\Cloud\Spanner\Result;
 use Google\Cloud\Spanner\Transaction;
 use OAT\Library\DBALSpanner\Parameters\ParameterTranslator;
 use OAT\Library\DBALSpanner\SpannerStatement;
+use OAT\Library\DBALSpanner\Tests\_helpers\NoPrivacyTrait;
 use PDO;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -35,6 +36,8 @@ use Psr\Log\Test\TestLogger;
 
 class SpannerStatementTest extends TestCase
 {
+    use NoPrivacyTrait;
+
     /** @var Database|MockObject */
     private $database;
 
@@ -461,29 +464,10 @@ class SpannerStatementTest extends TestCase
         $this->assertFalse($subject->fetchAll());
     }
 
-    // TODO:
     public function testFetchColumnWithNoResultReturnsFalse()
     {
         $subject = new SpannerStatement($this->database, '', $this->parameterTranslator);
 
         $this->assertFalse($subject->fetchColumn());
-    }
-
-    private function getPrivateProperty($object, $propertyName)
-    {
-        $property = new \ReflectionProperty(get_class($object), $propertyName);
-        $property->setAccessible(true);
-        $value = $property->getValue($object);
-        $property->setAccessible(false);
-
-        return $value;
-    }
-
-    private function setPrivateProperty($object, $propertyName, $value)
-    {
-        $property = new \ReflectionProperty(get_class($object), $propertyName);
-        $property->setAccessible(true);
-        $property->setValue($object, $value);
-        $property->setAccessible(false);
     }
 }
