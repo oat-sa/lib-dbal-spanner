@@ -124,6 +124,33 @@ class SpannerConnectionWrapperTest extends TestCase
         $this->getConnectionWrapper($this->createMock(SpannerConnection::class))->lastInsertId();
     }
 
+    public function testBeginTransaction()
+    {
+        $this->expectNoException(
+            function () {
+                $this->getConnectionWrapper($this->createMock(SpannerConnection::class))->beginTransaction();
+            }
+        );
+    }
+
+    public function testCommit()
+    {
+        $this->expectNoException(
+            function () {
+                $this->getConnectionWrapper($this->createMock(SpannerConnection::class))->commit();
+            }
+        );
+    }
+
+    public function testRollBack()
+    {
+        $this->expectNoException(
+            function () {
+                $this->getConnectionWrapper($this->createMock(SpannerConnection::class))->rollBack();
+            }
+        );
+    }
+
     public function testErrorCode()
     {
         $this->expectException(\Exception::class);
@@ -134,5 +161,18 @@ class SpannerConnectionWrapperTest extends TestCase
     {
         $this->expectException(\Exception::class);
         $this->getConnectionWrapper($this->createMock(SpannerConnection::class))->errorInfo();
+    }
+
+    public function expectNoException(callable $function): void
+    {
+        try {
+            $function();
+        } catch (\Exception $e) {
+            /* An exception was thrown unexpectedly, so fail the test */
+            $this->fail();
+        }
+
+        /* No exception was thrown, so just make a dummy assertion to pass the test */
+        $this->assertTrue(true);
     }
 }

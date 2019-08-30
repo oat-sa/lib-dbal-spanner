@@ -132,6 +132,12 @@ class SpannerPlatformTest extends TestCase
         );
     }
 
+    public function testGetTruncateTableSQL()
+    {
+        $this->expectException(\Exception::class);
+        $this->subject->getTruncateTableSQL('');
+    }
+
     public function testGetReservedKeywordsClass()
     {
         $this->assertEquals(

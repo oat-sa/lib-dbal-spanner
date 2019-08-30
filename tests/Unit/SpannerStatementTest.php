@@ -106,6 +106,20 @@ class SpannerStatementTest extends TestCase
         $subject->bindParam('column', $variable);
     }
 
+    public function testErrorCode()
+    {
+        $subject = new SpannerStatement($this->database, '', $this->parameterTranslator);
+        $this->expectException(\Exception::class);
+        $subject->errorCode('');
+    }
+
+    public function testErrorInfo()
+    {
+        $subject = new SpannerStatement($this->database, '', $this->parameterTranslator);
+        $this->expectException(\Exception::class);
+        $subject->errorInfo('');
+    }
+
     public function testExecuteWithWrongNumberOfParametersLogsMessageAndReturnsFalse()
     {
         $originalSql = 'sql string with ? placeholder';
@@ -263,6 +277,20 @@ class SpannerStatementTest extends TestCase
         $this->setPrivateProperty($subject, 'result', $result);
 
         $this->assertEquals(count($rows), $subject->rowCount());
+    }
+
+    public function testCloseCursor()
+    {
+        $subject = new SpannerStatement($this->database, '', $this->parameterTranslator);
+        $this->expectException(\Exception::class);
+        $subject->closeCursor('');
+    }
+
+    public function testColumnCount()
+    {
+        $subject = new SpannerStatement($this->database, '', $this->parameterTranslator);
+        $this->expectException(\Exception::class);
+        $subject->columnCount('');
     }
 
     /**
@@ -469,5 +497,12 @@ class SpannerStatementTest extends TestCase
         $subject = new SpannerStatement($this->database, '', $this->parameterTranslator);
 
         $this->assertFalse($subject->fetchColumn());
+    }
+
+    public function testGetIterator()
+    {
+        $subject = new SpannerStatement($this->database, '', $this->parameterTranslator);
+        $this->expectException(\Exception::class);
+        $subject->getIterator('');
     }
 }

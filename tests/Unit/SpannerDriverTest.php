@@ -23,16 +23,36 @@ use Doctrine\DBAL\Connection;
 use Google\Cloud\Core\Exception\NotFoundException;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Instance;
+use Google\Cloud\Spanner\SpannerClient;
+use LogicException;
+use OAT\Library\DBALSpanner\SpannerClient\SpannerClientFactory;
 use OAT\Library\DBALSpanner\SpannerConnection;
 use OAT\Library\DBALSpanner\SpannerDriver;
 use OAT\Library\DBALSpanner\SpannerPlatform;
 use OAT\Library\DBALSpanner\SpannerSchemaManager;
 use OAT\Library\DBALSpanner\Tests\_helpers\NoPrivacyTrait;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class SpannerDriverTest extends TestCase
 {
     use NoPrivacyTrait;
+
+    /** @var SpannerDriver */
+    private $subject;
+
+    /** @var SpannerClientFactory|MockObject */
+    private $spannerClientFactory;
+
+    public function setUp(): void
+    {
+        $this->spannerClientFactory = $this->getMockBuilder(SpannerClientFactory::class)
+            ->disableOriginalConstructor()
+            ->setMethods(['create'])
+            ->getMock();
+
+        $this->subject = new SpannerDriver($this->spannerClientFactory);
+    }
 
     public function testConnect()
     {
@@ -44,16 +64,37 @@ class SpannerDriverTest extends TestCase
                 'database' => $this->createMock(Database::class),
             ]
         );
-        $driver = new SpannerDriver();
-        $this->setPrivateProperty($driver, 'instance', $instance);
+        $this->setPrivateProperty($this->subject, 'instance', $instance);
 
         $parameters = ['instance' => 'toto', 'dbname' => 'titi'];
-        $connection = $driver->connect($parameters);
+        $connection = $this->subject->connect($parameters);
 
         $this->assertInstanceOf(SpannerConnection::class, $connection);
-        $this->assertEquals('titi', $driver->getDatabase($this->createMock(Connection::class)));
-        $this->assertEquals('toto', $this->getPrivateProperty($driver, 'instanceName'));
-        $this->assertSame($driver, $this->getPrivateProperty($connection, 'driver'));
+        $this->assertEquals('titi', $this->subject->getDatabase($this->createMock(Connection::class)));
+        $this->assertEquals('toto', $this->getPrivateProperty($this->subject, 'instanceName'));
+        $this->assertSame($this->subject, $this->getPrivateProperty($connection, 'driver'));
+    }
+
+    public function testGetDatabasePlatform()
+    {
+        $this->assertInstanceOf(SpannerPlatform::class, $this->subject->getDatabasePlatform());
+    }
+
+    public function testGetSchemaManager()
+    {
+        $this->assertInstanceOf(SpannerSchemaManager::class, $this->subject->getSchemaManager($this->createMock(Connection::class)));
+    }
+
+    public function testGetName()
+    {
+        $this->assertSame(SpannerDriver::DRIVER_NAME, $this->subject->getName());
+    }
+
+    public function testGetDatabase()
+    {
+        $driver = $this->subject;
+        $this->setPrivateProperty($driver, 'databaseName', 'fixture');
+        $this->assertEquals('fixture', $driver->getDatabase($this->createMock(Connection::class)));
     }
 
     public function testSelectDatabaseNotFoundWithException()
@@ -70,7 +111,7 @@ class SpannerDriverTest extends TestCase
                 'database' => $this->createMock(Database::class),
             ]
         );
-        $driver = new SpannerDriver();
+        $driver = $this->subject;
         $this->setPrivateProperty($driver, 'instance', $instance);
 
         $this->expectException(NotFoundException::class);
@@ -78,26 +119,21 @@ class SpannerDriverTest extends TestCase
         $driver->selectDatabase('not-existing');
     }
 
-    public function testGetDatabasePlatform()
+    public function testParseParameters()
     {
-        $this->assertInstanceOf(SpannerPlatform::class, (new SpannerDriver())->getDatabasePlatform());
+        $parameters = ['instance' => 'toto', 'dbname' => 'titi'];
+        $this->assertEquals(['toto', 'titi'], $this->subject->parseParameters($parameters));
     }
 
-    public function testGetSchemaManager()
+    /**
+     * @dataProvider failedParseParametersProvider
+     *
+     * @param $parameters
+     */
+    public function testFailedParseParameters($parameters)
     {
-        $this->assertInstanceOf(SpannerSchemaManager::class, (new SpannerDriver())->getSchemaManager($this->createMock(Connection::class)));
-    }
-
-    public function testGetName()
-    {
-        $this->assertSame(SpannerDriver::DRIVER_NAME, (new SpannerDriver())->getName());
-    }
-
-    public function testGetDatabase()
-    {
-        $driver = new SpannerDriver();
-        $this->setPrivateProperty($driver, 'databaseName', 'fixture');
-        $this->assertEquals('fixture', $driver->getDatabase($this->createMock(Connection::class)));
+        $this->expectException(\LogicException::class);
+        $this->subject->parseParameters($parameters);
     }
 
     public function failedParseParametersProvider()
@@ -112,21 +148,36 @@ class SpannerDriverTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider failedParseParametersProvider
-     *
-     * @param $parameters
-     */
-    public function testFailedParseParameters($parameters)
+    public function testGetInstanceWithAlreadySetInstanceReturnsInstance()
     {
-        $this->expectException(\LogicException::class);
-        (new SpannerDriver())->parseParameters($parameters);
+        $instance = $this->createMock(Instance::class);
+        $this->setPrivateProperty($this->subject, 'instance', $instance);
+        $this->assertEquals($instance, $this->subject->getInstance('instanceName'));
     }
 
-    public function testParseParameters()
+    public function testGetInstanceWithNotExistingInstanceThrowsException()
     {
-        $parameters = ['instance' => 'toto', 'dbname' => 'titi'];
-        $this->assertEquals(['toto', 'titi'], (new SpannerDriver())->parseParameters($parameters));
+        $instanceName = 'instance name';
+
+        $instance = $this->createConfiguredMock(Instance::class, ['exists' => false]);
+        $spannerClient = $this->createConfiguredMock(SpannerClient::class, ['instance' => $instance]);
+        $this->spannerClientFactory->method('create')->willReturn($spannerClient);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Instance \'' . $instanceName . '\' does not exist.');
+        $this->subject->getInstance($instanceName);
+    }
+
+    public function testGetInstanceWithExistingInstanceSetsInstanceNameAndReturnsInstance()
+    {
+        $instanceName = 'instance name';
+
+        $instance = $this->createConfiguredMock(Instance::class, ['exists' => true]);
+        $spannerClient = $this->createConfiguredMock(SpannerClient::class, ['instance' => $instance]);
+        $this->spannerClientFactory->method('create')->willReturn($spannerClient);
+
+        $this->assertEquals($instance, $this->subject->getInstance($instanceName));
+        $this->assertEquals($instanceName, $this->getPrivateProperty($this->subject, 'instanceName'));
     }
 
     public function testListDatabases()
@@ -141,10 +192,9 @@ class SpannerDriverTest extends TestCase
                 ],
             ]
         );
-        $driver = new SpannerDriver();
-        $this->setPrivateProperty($driver, 'instance', $instance);
+        $this->setPrivateProperty($this->subject, 'instance', $instance);
 
-        $this->assertEquals(['salut', 'test.db'], $driver->listDatabases('test'));
+        $this->assertEquals(['salut', 'test.db'], $this->subject->listDatabases('test'));
     }
 
     public function testListDatabasesWithNullInstanceName()
@@ -154,10 +204,9 @@ class SpannerDriverTest extends TestCase
             ->method('databases')
             ->willReturn([$this->createConfiguredMock(Database::class, ['name' => 'salut'])]);
 
-        $driver = new SpannerDriver();
-        $this->setPrivateProperty($driver, 'instance', $instance);
-        $this->setPrivateProperty($driver, 'instanceName', 'fixture');
+        $this->setPrivateProperty($this->subject, 'instance', $instance);
+        $this->setPrivateProperty($this->subject, 'instanceName', 'fixture');
 
-        $this->assertEquals(['salut'], $driver->listDatabases(''));
+        $this->assertEquals(['salut'], $this->subject->listDatabases(''));
     }
 }

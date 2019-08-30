@@ -28,12 +28,11 @@ use Google\Cloud\Core\Exception\GoogleException;
 use Google\Cloud\Core\Exception\NotFoundException;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Instance;
-use Google\Cloud\Spanner\SpannerClient;
 use LogicException;
+use OAT\Library\DBALSpanner\SpannerClient\SpannerClientFactory;
 
 class SpannerDriver implements Driver
 {
-    private const KEY_FILE_ENV_VARIABLE = 'GOOGLE_APPLICATION_CREDENTIALS';
     public const DRIVER_NAME = 'gcp-spanner';
 
     /** @var Instance */
@@ -45,10 +44,24 @@ class SpannerDriver implements Driver
     /** @var string */
     private $databaseName;
 
+    /** @var SpannerClientFactory */
+    private $spannerClientFactory;
+
+    /**
+     * SpannerDriver constructor.
+     *
+     * @param SpannerClientFactory $spannerClientFactory
+     */
+    public function __construct(SpannerClientFactory $spannerClientFactory)
+    {
+        $this->spannerClientFactory = $spannerClientFactory;
+    }
+
     /**
      * @inheritdoc
      *
      * @throws LogicException When a parameter is missing or ext/grpc is missing or the instance does not exist.
+     * @throws GoogleException When ext/grpc is missing.
      * @throws NotFoundException when database does not exist.
      * @throws DBALException
      */
@@ -129,25 +142,19 @@ class SpannerDriver implements Driver
      * @param string $instanceName
      *
      * @return Instance
-     * @throws LogicException When ext/grpc is missing or the instance does not exist.
+     * @throws GoogleException When ext/grpc is missing.
+     * @throws LogicException When the instance does not exist.
      */
     public function getInstance(string $instanceName): Instance
     {
         if ($this->instance === null) {
-            try {
-                $keyFileName = getenv(self::KEY_FILE_ENV_VARIABLE);
-                $keyFile = json_decode(file_get_contents($keyFileName), true);
-                $spanner = new SpannerClient(['keyFile' => $keyFile]);
-            } catch (GoogleException $exception) {
-                throw new LogicException($exception->getMessage());
-            }
-
-            $this->instanceName = $instanceName;
-            $instance = $spanner->instance($instanceName);
+            $spannerClient = $this->spannerClientFactory->create();
+            $instance = $spannerClient->instance($instanceName);
             if (!$instance->exists()) {
                 throw new LogicException(sprintf("Instance '%s' does not exist.", $instanceName));
             }
 
+            $this->instanceName = $instanceName;
             $this->instance = $instance;
         }
 

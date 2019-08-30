@@ -248,4 +248,40 @@ class SpannerConnectionTest extends TestCase
         $connection = $this->getSpannerConnection($driver, $database);
         $connection->update($tableName, $data, $identifiers);
     }
+
+    public function testLastInsertId()
+    {
+        $this->expectException(\Exception::class);
+        $this->getSpannerConnection()->lastInsertId();
+    }
+
+    public function testBeginTransaction()
+    {
+        $this->expectException(\Exception::class);
+        $this->getSpannerConnection()->beginTransaction();
+    }
+
+    public function testCommit()
+    {
+        $this->expectException(\Exception::class);
+        $this->getSpannerConnection()->commit();
+    }
+
+    public function testRollBack()
+    {
+        $this->expectException(\Exception::class);
+        $this->getSpannerConnection()->rollBack();
+    }
+
+    public function testErrorCode()
+    {
+        $this->expectException(\Exception::class);
+        $this->getSpannerConnection()->errorCode();
+    }
+
+    public function testErrorInfo()
+    {
+        $this->expectException(\Exception::class);
+        $this->getSpannerConnection()->errorInfo();
+    }
 }

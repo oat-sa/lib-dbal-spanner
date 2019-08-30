@@ -74,6 +74,12 @@ class SpannerSchemaManagerTest extends TestCase
         $this->assertEquals($databases, $this->subject->listDatabases());
     }
 
+    public function testCreateDatabase()
+    {
+        $this->expectException(\Exception::class);
+        $this->subject->createDatabase('');
+    }
+
     public function testGetPortableTableColumnDefinition()
     {
         $fieldName = 'field1';
