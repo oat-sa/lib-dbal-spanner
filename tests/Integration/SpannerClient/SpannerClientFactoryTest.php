@@ -17,7 +17,7 @@
  * Copyright (c) 2019 (original work) Open Assessment Technologies SA;
  */
 
-namespace OAT\Library\DBALSpanner\Tests\Unit\SpannerClient;
+namespace OAT\Library\DBALSpanner\Tests\Integration\SpannerClient;
 
 use Google\Cloud\Spanner\SpannerClient;
 use OAT\Library\DBALSpanner\SpannerClient\SpannerClientFactory;
@@ -30,14 +30,12 @@ class SpannerClientFactoryTest extends TestCase
     public function testGetInstanceWithoutGrpcInstalledThrowsException()
     {
         $keyFileName = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '../_resources/key_file.json';
-        $keyFile = ['project_id' => 'id', 'type' => 'blah'];
 
         $this->MockFunction('OAT\Library\DBALSpanner\SpannerClient', "getenv", $keyFileName);
 
         $subject = new SpannerClientFactory();
         $spannerClient = $subject->create();
         $this->assertInstanceOf(SpannerClient::class, $spannerClient);
-//        $this->assertEquals($keyFile, $spannerClient);
     }
 
     /**

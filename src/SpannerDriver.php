@@ -115,7 +115,6 @@ class SpannerDriver implements Driver
         return $this->instance->database($databaseName);
     }
 
-
     /**
      * Ensures that necessary parameters are provided.
      *
