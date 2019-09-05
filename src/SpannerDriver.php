@@ -52,8 +52,11 @@ class SpannerDriver implements Driver
      *
      * @param SpannerClientFactory $spannerClientFactory
      */
-    public function __construct(SpannerClientFactory $spannerClientFactory)
+    public function __construct(SpannerClientFactory $spannerClientFactory = null)
     {
+        if ($spannerClientFactory === null) {
+            $spannerClientFactory = new SpannerClientFactory();
+        }
         $this->spannerClientFactory = $spannerClientFactory;
     }
 
