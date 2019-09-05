@@ -123,6 +123,12 @@ class SpannerPlatform extends AbstractPlatform
         return 'FLOAT64';
     }
 
+    public function getDefaultValueDeclarationSQL($field)
+    {
+        // Default is not supported on spanner.
+        return '';
+    }
+
     protected function initializeDoctrineTypeMappings()
     {
         $this->doctrineTypeMapping = [
