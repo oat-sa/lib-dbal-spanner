@@ -71,6 +71,10 @@ class SpannerDriver implements Driver
 
         $this->instance = $this->getInstance($this->instanceName);
 
+        // TODO activate cacheSessionPool with
+        // $cacheSessionPool = $this->spannerClientFactory->createCacheSessionPool();
+        // $database = $spanner->connect($this->instanceName, $this->databaseName, ['sessionPool' => $cacheSessionPool]);
+
         $connection = new SpannerConnection($this, $this->selectDatabase($this->databaseName));
 
         return $connection;
