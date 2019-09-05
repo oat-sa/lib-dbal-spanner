@@ -146,12 +146,12 @@ class SpannerPlatform extends AbstractPlatform
 
     public function getClobTypeDeclarationSQL(array $field)
     {
-        return 'BYTES';
+        return 'STRING(MAX)';
     }
 
     public function getBlobTypeDeclarationSQL(array $field)
     {
-        return 'BYTES';
+        return 'STRING(MAX)';
     }
 
     public function getTruncateTableSQL($tableName, $cascade = false)
