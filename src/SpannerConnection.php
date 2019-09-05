@@ -63,10 +63,9 @@ class SpannerConnection implements Connection
         $sql = $args[0];
         // Runs schema manipulation on the DDL endpoint.
         if ($this->isDdlStatement($sql)) {
-            // Don't run schema changes on spanner for the moment.
-            return null;
-            // TODO: this generates a long running query which has to be managed.
-            $longRunningQuery = $this->database->updateDdl($statement);
+            $longRunningOperation = $this->database->updateDdl($sql);
+            $longRunningOperation->pollUntilComplete();
+            return true;
         }
 
         $statement = $this->prepare($sql);
@@ -160,10 +159,9 @@ class SpannerConnection implements Connection
     {
         // Runs schema manipulation on the DDL endpoint.
         if ($this->isDdlStatement($statement)) {
-            // Don't run schema changes on spanner for the moment.
-            return 0;
-            // TODO: this generates a long running query which has to be managed.
-            $longRunningQuery = $this->database->updateDdl($statement);
+            $longRunningOperation = $this->database->updateDdl($statement);
+            $longRunningOperation->pollUntilComplete();
+            return true;
         }
 
         return $this->database->runTransaction(
