@@ -71,16 +71,14 @@ class SpannerDriver implements Driver
     public function connect(array $params, $username = null, $password = null, array $driverOptions = [])
     {
         [$this->instanceName, $this->databaseName] = $this->parseParameters($params);
-
         $this->instance = $this->getInstance($this->instanceName);
 
-        // TODO activate cacheSessionPool with
-        // $cacheSessionPool = $this->spannerClientFactory->createCacheSessionPool();
-        // $database = $spanner->connect($this->instanceName, $this->databaseName, ['sessionPool' => $cacheSessionPool]);
+        $cacheSessionPool = $this->spannerClientFactory->createCacheSessionPool();
+        $database = $this->selectDatabase($this->databaseName, ['sessionPool' => $cacheSessionPool]);
+        $cacheSessionPool->setDatabase($database);
+        $cacheSessionPool->warmup();
 
-        $connection = new SpannerConnection($this, $this->selectDatabase($this->databaseName));
-
-        return $connection;
+        return new SpannerConnection($this, $database);
     }
 
     public function getDatabasePlatform()
@@ -107,11 +105,12 @@ class SpannerDriver implements Driver
      * Selects a database if it exists.
      *
      * @param string $databaseName
+     * @param array $options connection options containing for example a sessionPool
      *
      * @return Database
      * @throws NotFoundException when database does not exist.
      */
-    public function selectDatabase(string $databaseName): Database
+    public function selectDatabase(string $databaseName, array $options): Database
     {
         if (!in_array($databaseName, $this->listDatabases($this->instance->name()))) {
             throw new NotFoundException(
@@ -119,7 +118,7 @@ class SpannerDriver implements Driver
             );
         }
 
-        return $this->instance->database($databaseName);
+        return $this->instance->database($databaseName, $options);
     }
 
     /**

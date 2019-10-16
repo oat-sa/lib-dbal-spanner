@@ -21,14 +21,15 @@ namespace OAT\Library\DBALSpanner\SpannerClient;
 
 use Google\Auth\Cache\SysVCacheItemPool;
 use Google\Cloud\Core\Exception\GoogleException;
+use Google\Cloud\Core\Lock\SemaphoreLock;
 use Google\Cloud\Spanner\Session\CacheSessionPool;
 use Google\Cloud\Spanner\SpannerClient;
 
 class SpannerClientFactory
 {
     private const KEY_FILE_ENV_VARIABLE = 'GOOGLE_APPLICATION_CREDENTIALS';
-    private const SESSION_MIN = 10;
-    private const SESSION_MAX = 10;
+    private const SESSIONS_MIN = 1;
+    private const SESSIONS_MAX = 100;
 
     /**
      * Creates a Google Spanner client from env configuration.
@@ -39,7 +40,7 @@ class SpannerClientFactory
     public function create()
     {
         $authCache = new SysVCacheItemPool();
-        $keyFileName = getenv(self::KEY_FILE_ENV_VARIABLE);
+        $keyFileName = $_ENV[self::KEY_FILE_ENV_VARIABLE];
         $keyFile = json_decode(file_get_contents($keyFileName), true);
 
         return new SpannerClient(['keyFile' => $keyFile, 'authCache' => $authCache]);
@@ -54,19 +55,17 @@ class SpannerClientFactory
     public function createCacheSessionPool()
     {
         // Use a different project identifier for ftok than the default.
-        $sessionCache = new SysVCacheItemPool(['proj' => 'whatever']);
+        $sessionCache = new SysVCacheItemPool(['proj' => 'B']);
 
         // Creates multiple sessions.
         $sessionPool = new CacheSessionPool(
             $sessionCache,
             [
-                'minSession' => self::SESSION_MIN,
-                'maxSession' => self::SESSION_MAX,
+                'lock' => new SemaphoreLock(65535),
+                'minSessions' => self::SESSIONS_MIN,
+                'maxSessions' => self::SESSIONS_MAX,
             ]
         );
-
-        // Creates the sessions for the first time.
-        $sessionPool->warmup();
 
         return $sessionPool;
     }
