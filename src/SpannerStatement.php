@@ -26,6 +26,7 @@ use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Doctrine\DBAL\FetchMode;
 use Doctrine\DBAL\ParameterType;
+use Exception;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Result;
 use Google\Cloud\Spanner\Transaction;
@@ -120,32 +121,35 @@ class SpannerStatement implements IteratorAggregate, Statement
 
     public function errorCode()
     {
-        throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
+        throw new Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
     }
 
     public function errorInfo()
     {
-        throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
+        throw new Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
     }
 
     /**
      * @param array $params
      *
      * @return bool
+     * @throws Exception
      */
     public function execute($params = null): bool
     {
         try {
             $parameters = $this->parameterTranslator->convertPositionalToNamed($this->boundValues, $params);
         } catch (InvalidArgumentException $exception) {
-            $this->logger->error(
-                sprintf(
-                    "%s in the statement '%s'.",
-                    $exception->getMessage(),
-                    preg_replace('/@param[0-9]+/', '?', $this->sql)
-                )
-            );
-            return false;
+            if ($this->logger) {
+                $this->logger->error(
+                    sprintf(
+                        "%s in the statement '%s'.",
+                        $exception->getMessage(),
+                        preg_replace('/@param[0-9]+/', '?', $this->sql)
+                    )
+                );
+            }
+            throw $exception;
         }
 
         // DML statement is executed with a direct call to database execute.
@@ -167,9 +171,11 @@ class SpannerStatement implements IteratorAggregate, Statement
                     return (bool)$this->affectedRows;
                 }
             );
-        } catch (\Exception $exception) {
-            $this->logger->error($exception->getMessage());
-            return false;
+        } catch (Exception $exception) {
+            if ($this->logger) {
+                $this->logger->error($exception->getMessage());
+            }
+            throw $exception;
         }
     }
 
@@ -210,12 +216,12 @@ class SpannerStatement implements IteratorAggregate, Statement
 
     public function closeCursor()
     {
-        throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
+        throw new Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
     }
 
     public function columnCount()
     {
-        throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
+        throw new Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
     }
 
     public function setFetchMode($fetchMode, $arg2 = null, $arg3 = null)
@@ -370,7 +376,7 @@ class SpannerStatement implements IteratorAggregate, Statement
 
     public function getIterator()
     {
-        throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
+        throw new Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
     }
 
     protected function loadRows($fetchMode = null)
