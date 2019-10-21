@@ -116,7 +116,7 @@ class SpannerDriverTest extends TestCase
 
         $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage(sprintf("Database '%s' does not exist on instance '%s'.", 'not-existing', 'instance-name'));
-        $driver->selectDatabase('not-existing');
+        $driver->selectDatabase('not-existing', []);
     }
 
     public function testParseParameters()
