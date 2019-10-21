@@ -40,14 +40,13 @@ class SpannerClientFactory
     public function create()
     {
         $authCache = new SysVCacheItemPool();
-        $keyFileName = $_ENV[self::KEY_FILE_ENV_VARIABLE] ?? '';
+        $keyFileName = getenv(self::KEY_FILE_ENV_VARIABLE) ?? '';
         if ($keyFileName === '') {
             new GoogleException(
-                sprintf('Missing path to Google credentials key file (should be set as an environment variable "%s").'),
-                self::KEY_FILE_ENV_VARIABLE
+                sprintf('Missing path to Google credentials key file (should be set as an environment variable "%s").', self::KEY_FILE_ENV_VARIABLE)
             );
         }
-        
+
         $keyFile = json_decode(file_get_contents($keyFileName), true);
 
         return new SpannerClient(['keyFile' => $keyFile, 'authCache' => $authCache]);
