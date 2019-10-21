@@ -20,6 +20,8 @@
 namespace OAT\Library\DBALSpanner\Parameters;
 
 use Doctrine\DBAL\Exception\InvalidArgumentException;
+use Doctrine\DBAL\ParameterType;
+use Google\Cloud\Spanner\Database;
 use PhpMyAdmin\SqlParser\Lexer;
 use PhpMyAdmin\SqlParser\Token;
 
@@ -77,14 +79,16 @@ class ParameterTranslator
 
     /**
      * Translates the positional parameters into named parameters.
+     * Takes care about types mapp
      *
      * @param array $boundValues
-     * @param array $params
+     * @param array|null $params
      *
+     * @param array|null $boundTypes
      * @return array
      * @throws InvalidArgumentException when a wrong number of parameters is provided.
      */
-    public function convertPositionalToNamed(array $boundValues, array $params = null): array
+    public function convertPositionalToNamed(array $boundValues, array $params = null, array $boundTypes = null): array
     {
         // Positional parameters first index.
         $offset = 0;
@@ -95,7 +99,7 @@ class ParameterTranslator
 
         // Named parameters don't have numeric keys.
         if (!array_key_exists($offset, $params)) {
-            return $params;
+            return [$params, []];
         }
 
         // Assert number of parameters.
@@ -111,10 +115,28 @@ class ParameterTranslator
 
         // Generates 1-based sequenced parameter names.
         $namedParameters = [];
+        $namedTypes = [];
         for ($i = 0; $i < count($params); $i++) {
             $namedParameters ['param' . ($i + 1)] = $params[$i + $offset];
+            $namedTypes ['param' . ($i + 1)] = $boundTypes ? $boundTypes[$i + $offset] : null;
         }
 
-        return $namedParameters;
+        return [$namedParameters, array_filter($namedTypes)];
     }
+
+    /**
+     * @param $type
+     * @return int|mixed
+     */
+    public function convertPDOtoSpannerTypes($type)
+    {
+        $typesMap = [
+            ParameterType::BOOLEAN => Database::TYPE_BOOL,
+            ParameterType::STRING => Database::TYPE_STRING,
+            ParameterType::INTEGER => Database::TYPE_INT64,
+        ];
+
+        return array_key_exists($type, $typesMap) ? $typesMap[$type] : Database::TYPE_STRING;
+    }
+
 }
