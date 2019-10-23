@@ -22,6 +22,7 @@ namespace Oat\DbalSpanner\Tests\Unit;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Doctrine\DBAL\FetchMode;
+use Exception;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Result;
 use Google\Cloud\Spanner\Transaction;
@@ -109,14 +110,14 @@ class SpannerStatementTest extends TestCase
     public function testErrorCode()
     {
         $subject = new SpannerStatement($this->database, '', $this->parameterTranslator);
-        $this->expectException(\Exception::class);
+        $this->expectException(Exception::class);
         $subject->errorCode('');
     }
 
     public function testErrorInfo()
     {
         $subject = new SpannerStatement($this->database, '', $this->parameterTranslator);
-        $this->expectException(\Exception::class);
+        $this->expectException(Exception::class);
         $subject->errorInfo('');
     }
 
@@ -124,7 +125,7 @@ class SpannerStatementTest extends TestCase
     {
         $originalSql = 'sql string with ? placeholder';
         $newSql = 'sql string with @param1 placeholder';
-        $message = 'error mesasge from parameter translator';
+        $message = 'error message from parameter translator';
 
         $this->parameterTranslator->method('translatePlaceHolders')->with($originalSql)->willReturn($newSql);
         $this->parameterTranslator->method('convertPositionalToNamed')->willThrowException(new InvalidArgumentException($message));
@@ -147,7 +148,7 @@ class SpannerStatementTest extends TestCase
         $result = $this->getMockBuilder(Result::class);
 
         $this->parameterTranslator->method('translatePlaceHolders')->with($originalSql)->willReturn($newSql);
-        $this->parameterTranslator->method('convertPositionalToNamed')->willReturnArgument(1);
+        $this->parameterTranslator->method('convertPositionalToNamed')->willReturn([$parameters, []]);
 
         $this->database->method('execute')->with($newSql, ['parameters' => $parameters])->willReturn($result);
 
@@ -166,9 +167,9 @@ class SpannerStatementTest extends TestCase
         $message = 'the exception message';
 
         $this->parameterTranslator->method('translatePlaceHolders')->with($originalSql)->willReturn($newSql);
-        $this->parameterTranslator->method('convertPositionalToNamed')->willReturnArgument(1);
+        $this->parameterTranslator->method('convertPositionalToNamed')->willReturn([$parameters, []]);
 
-        $this->database->method('runTransaction')->willThrowException(new \Exception($message));
+        $this->database->method('runTransaction')->willThrowException(new Exception($message));
 
         $logger = new TestLogger();
 
@@ -187,13 +188,13 @@ class SpannerStatementTest extends TestCase
         $affectedRows = 12;
 
         $this->parameterTranslator->method('translatePlaceHolders')->with($originalSql)->willReturn($newSql);
-        $this->parameterTranslator->method('convertPositionalToNamed')->willReturnArgument(1);
+        $this->parameterTranslator->method('convertPositionalToNamed')->willReturn([$parameters,[]]);
 
         $transaction = $this->getMockBuilder(Transaction::class)
             ->disableOriginalConstructor()
             ->setMethods(['executeUpdate','commit'])
             ->getMock();
-        $transaction->method('executeUpdate')->with($newSql, ['parameters' => $parameters])->willReturn($affectedRows);
+        $transaction->method('executeUpdate')->with($newSql, ['parameters' => $parameters, 'types' => []])->willReturn($affectedRows);
         $transaction->expects($this->once())->method('commit');
 
         $this->database->method('runTransaction')
@@ -282,14 +283,14 @@ class SpannerStatementTest extends TestCase
     public function testCloseCursor()
     {
         $subject = new SpannerStatement($this->database, '', $this->parameterTranslator);
-        $this->expectException(\Exception::class);
+        $this->expectException(Exception::class);
         $subject->closeCursor('');
     }
 
     public function testColumnCount()
     {
         $subject = new SpannerStatement($this->database, '', $this->parameterTranslator);
-        $this->expectException(\Exception::class);
+        $this->expectException(Exception::class);
         $subject->columnCount('');
     }
 
@@ -502,7 +503,7 @@ class SpannerStatementTest extends TestCase
     public function testGetIterator()
     {
         $subject = new SpannerStatement($this->database, '', $this->parameterTranslator);
-        $this->expectException(\Exception::class);
+        $this->expectException(Exception::class);
         $subject->getIterator('');
     }
 }

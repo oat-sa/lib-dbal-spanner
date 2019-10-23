@@ -67,6 +67,9 @@ class SpannerStatement implements IteratorAggregate, Statement
     /** @var array */
     protected $boundValues = [];
 
+    /** @var array */
+    protected $boundTypes  = [];
+
     /** @var int */
     protected $affectedRows = 0;
 
@@ -108,6 +111,7 @@ class SpannerStatement implements IteratorAggregate, Statement
      */
     public function bindValue($param, $value, $type = ParameterType::STRING)
     {
+        $this->boundTypes[$param] = $this->parameterTranslator->convertPDOtoSpannerTypes($type);
         $this->boundValues[$param] = $value;
     }
 
@@ -138,7 +142,7 @@ class SpannerStatement implements IteratorAggregate, Statement
     public function execute($params = null): bool
     {
         try {
-            $parameters = $this->parameterTranslator->convertPositionalToNamed($this->boundValues, $params);
+            [$parameters, $types] = $this->parameterTranslator->convertPositionalToNamed($this->boundValues, $params, $this->boundTypes);
         } catch (InvalidArgumentException $exception) {
             if ($this->logger) {
                 $this->logger->error(
@@ -162,8 +166,8 @@ class SpannerStatement implements IteratorAggregate, Statement
         // DML statement is executed within a transaction.
         try {
             return $this->database->runTransaction(
-                function (Transaction $t) use ($parameters) {
-                    $this->affectedRows = $t->executeUpdate($this->sql, ['parameters' => $parameters]);
+                function (Transaction $t) use ($parameters, $types) {
+                    $this->affectedRows = $t->executeUpdate($this->sql, ['parameters' => $parameters, 'types' => $types]);
                     $t->commit();
                     $this->result = null;
                     $this->rows = null;
