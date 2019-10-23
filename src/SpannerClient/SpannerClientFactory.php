@@ -28,6 +28,7 @@ use Google\Cloud\Spanner\SpannerClient;
 class SpannerClientFactory
 {
     private const KEY_FILE_ENV_VARIABLE = 'GOOGLE_APPLICATION_CREDENTIALS';
+    private const DEFAULT_CREDENTIALS_FILE = '/var/google/key/key.json';
     private const SESSIONS_MIN = 1;
     private const SESSIONS_MAX = 100;
 
@@ -40,7 +41,7 @@ class SpannerClientFactory
     public function create()
     {
         $authCache = new SysVCacheItemPool();
-        $keyFileName = $_ENV[self::KEY_FILE_ENV_VARIABLE] ?? '';
+        $keyFileName = $_ENV[self::KEY_FILE_ENV_VARIABLE] ?? self::DEFAULT_CREDENTIALS_FILE;
         if ($keyFileName === '') {
             new GoogleException(
                 sprintf('Missing path to Google credentials key file (should be set as an environment variable "%s").'),
