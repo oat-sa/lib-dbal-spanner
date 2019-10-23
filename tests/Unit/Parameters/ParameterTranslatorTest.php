@@ -91,10 +91,10 @@ class ParameterTranslatorTest extends TestCase
         $value1 = 'value1';
 
         return [
-            [[$key1 => $value1], [], [$key1 => $value1]],
-            [[$numericKey1 => $value1], [], [$numericKey1 => $value1]],
-            [[], [], null],
-            [[$numericKey0 => $value1], [$numericKey0 => $value1], null],
+            [[[$key1 => $value1],[]], [], [$key1 => $value1]],
+            [[[$numericKey1 => $value1],[]], [], [$numericKey1 => $value1]],
+            [[[],[]], [], null],
+            [[[$numericKey0 => $value1],[]], [$numericKey0 => $value1], null],
         ];
     }
 
@@ -125,8 +125,8 @@ class ParameterTranslatorTest extends TestCase
         $value2 = 'value2';
 
         return [
-            [['param1' => $value1, 'param2' => $value2], [], [$value1, $value2]],
-            [['param1' => $value1, 'param2' => $value2], [$numericKey1 => $value1, $numericKey2 => $value2], null],
+            [[['param1' => $value1, 'param2' => $value2], []], [], [$value1, $value2]],
+            [[['param1' => $value1, 'param2' => $value2], []], [$numericKey1 => $value1, $numericKey2 => $value2], null],
         ];
     }
 }
