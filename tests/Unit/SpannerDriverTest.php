@@ -20,7 +20,6 @@
 namespace OAT\Library\DBALSpanner\Tests\Unit;
 
 use Doctrine\DBAL\Connection;
-use Google\Cloud\Core\Exception\NotFoundException;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Instance;
 use Google\Cloud\Spanner\SpannerClient;
@@ -99,24 +98,18 @@ class SpannerDriverTest extends TestCase
 
     public function testSelectDatabaseNotFoundWithException()
     {
-        $instance = $this->createConfiguredMock(
-            Instance::class,
-            [
-                'databases' => [
-                    $this->createConfiguredMock(Database::class, ['name' => 'titi']),
-                    $this->createConfiguredMock(Database::class, ['name' => 'another']),
-                    $this->createConfiguredMock(Database::class, ['name' => 'still-not-exist']),
-                ],
-                'name' => 'instance-name',
-                'database' => $this->createMock(Database::class),
-            ]
-        );
+        $dbName = 'db-name';
+        $options = ['some' => 'options'];
+
+        $database = $this->createMock(Database::class);
+
+        $instance = $this->createMock(Instance::class);
+        $instance->method('database')->with($dbName, $options)->willReturn($database);
+        
         $driver = $this->subject;
         $this->setPrivateProperty($driver, 'instance', $instance);
 
-        $this->expectException(NotFoundException::class);
-        $this->expectExceptionMessage(sprintf("Database '%s' does not exist on instance '%s'.", 'not-existing', 'instance-name'));
-        $driver->selectDatabase('not-existing', []);
+        $this->assertEquals($database, $driver->selectDatabase($dbName, $options));
     }
 
     public function testParseParameters()
@@ -178,35 +171,5 @@ class SpannerDriverTest extends TestCase
 
         $this->assertEquals($instance, $this->subject->getInstance($instanceName));
         $this->assertEquals($instanceName, $this->getPrivateProperty($this->subject, 'instanceName'));
-    }
-
-    public function testListDatabases()
-    {
-        $instance = $this->createConfiguredMock(
-            Instance::class,
-            [
-                'databases' => [
-                    'database1',
-                    $this->createConfiguredMock(Database::class, ['name' => 'salut']),
-                    $this->createConfiguredMock(Database::class, ['name' => '195.168.1.2/test.db']),
-                ],
-            ]
-        );
-        $this->setPrivateProperty($this->subject, 'instance', $instance);
-
-        $this->assertEquals(['salut', 'test.db'], $this->subject->listDatabases('test'));
-    }
-
-    public function testListDatabasesWithNullInstanceName()
-    {
-        $instance = $this->createMock(Instance::class);
-        $instance->expects($this->once())
-            ->method('databases')
-            ->willReturn([$this->createConfiguredMock(Database::class, ['name' => 'salut'])]);
-
-        $this->setPrivateProperty($this->subject, 'instance', $instance);
-        $this->setPrivateProperty($this->subject, 'instanceName', 'fixture');
-
-        $this->assertEquals(['salut'], $this->subject->listDatabases(''));
     }
 }

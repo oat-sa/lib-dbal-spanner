@@ -108,16 +108,9 @@ class SpannerDriver implements Driver
      * @param array $options connection options containing for example a sessionPool
      *
      * @return Database
-     * @throws NotFoundException when database does not exist.
      */
     public function selectDatabase(string $databaseName, array $options): Database
     {
-        if (!in_array($databaseName, $this->listDatabases($this->instance->name()))) {
-            throw new NotFoundException(
-                sprintf("Database '%s' does not exist on instance '%s'.", $databaseName, $this->instance->name())
-            );
-        }
-
         return $this->instance->database($databaseName, $options);
     }
 
@@ -164,28 +157,5 @@ class SpannerDriver implements Driver
         }
 
         return $this->instance;
-    }
-
-    /**
-     * Returns a list of database names existing on a Spanner instance.
-     *
-     * @param string $instanceName
-     *
-     * @return array|string[]
-     */
-    public function listDatabases(string $instanceName = ''): array
-    {
-        if ($instanceName === '') {
-            $instanceName = $this->instanceName;
-        }
-
-        $databaseList = [];
-        foreach ($this->getInstance($instanceName)->databases() as $database) {
-            if ($database instanceof Database) {
-                $databaseList[] = basename($database->name());
-            }
-        }
-
-        return $databaseList;
     }
 }
