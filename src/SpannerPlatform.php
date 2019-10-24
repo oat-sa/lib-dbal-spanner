@@ -76,4 +76,10 @@ class SpannerPlatform extends AbstractPlatform
     {
         return 'spanner';
     }
+
+    public function getWriteLockSQL()
+    {
+        return '';
+    }
+
 }
