@@ -204,4 +204,10 @@ class SpannerPlatform extends AbstractPlatform
 
         return $sql;
     }
+
+    public function getWriteLockSQL()
+    {
+        return '';
+    }
+
 }
