@@ -354,12 +354,17 @@ class SpannerStatement implements IteratorAggregate, Statement
     {
         $fetchMode = $fetchMode ?: $this->defaultFetchMode;
 
-        if ($fetchMode === PDO::FETCH_OBJ) {
-            $this->fetchObjects = true;
-            return Result::RETURN_ASSOCIATIVE;
+        switch ($fetchMode){
+            case PDO::FETCH_OBJ:
+                $this->fetchObjects = true;
+                return Result::RETURN_ASSOCIATIVE;
+            case PDO::FETCH_ASSOC:
+                $this->fetchObjects = false;
+                return Result::RETURN_ASSOCIATIVE;
+            default:
+                $this->fetchObjects = false;
         }
 
-        $this->fetchObjects = false;
         return $fetchMode;
     }
 
