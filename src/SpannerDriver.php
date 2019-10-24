@@ -108,7 +108,6 @@ class SpannerDriver implements Driver
      * @param array $options connection options containing for example a sessionPool
      *
      * @return Database
-     * @throws NotFoundException when database does not exist.
      */
     public function selectDatabase(string $databaseName, array $options): Database
     {

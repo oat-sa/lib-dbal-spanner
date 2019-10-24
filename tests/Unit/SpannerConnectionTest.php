@@ -5,6 +5,7 @@ namespace OAT\Library\DBALSpanner\Tests\Unit;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Google\Cloud\Core\LongRunning\LongRunningOperation;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Transaction;
 use OAT\Library\DBALSpanner\SpannerConnection;
@@ -81,11 +82,15 @@ class SpannerConnectionTest extends TestCase
      */
     public function testQueryWithDdl($query)
     {
-        $connection = $this->getSpannerConnection();
+        $longRunningOperation = $this->createMock(LongRunningOperation::class);
+        $longRunningOperation->expects($this->once())->method('pollUntilComplete');
+        
+        $database = $this->createMock(Database::class);
+        $database->method('updateDdl')->with($query)->willReturn($longRunningOperation);
 
-        $this->assertNull($connection->query($query));
+        $connection = $this->getSpannerConnection(null, $database);
 
-        $this->assertEmpty($this->getPrivateProperty($connection, 'cachedStatements'));
+        $this->assertTrue($connection->query($query));
     }
 
     public function deleteDataProvider()
@@ -200,7 +205,15 @@ class SpannerConnectionTest extends TestCase
      */
     public function testExecWithDdlQuery($query)
     {
-        $this->assertEquals(0, $this->getSpannerConnection()->exec($query));
+        $longRunningOperation = $this->createMock(LongRunningOperation::class);
+        $longRunningOperation->expects($this->once())->method('pollUntilComplete');
+
+        $database = $this->createMock(Database::class);
+        $database->method('updateDdl')->with($query)->willReturn($longRunningOperation);
+
+        $connection = $this->getSpannerConnection(null, $database);
+
+        $this->assertTrue($connection->exec($query));
     }
 
     public function updateDataProviderWithNull()

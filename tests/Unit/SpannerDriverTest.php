@@ -20,7 +20,6 @@
 namespace OAT\Library\DBALSpanner\Tests\Unit;
 
 use Doctrine\DBAL\Connection;
-use Google\Cloud\Core\Exception\NotFoundException;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Instance;
 use Google\Cloud\Spanner\SpannerClient;
@@ -99,24 +98,18 @@ class SpannerDriverTest extends TestCase
 
     public function testSelectDatabaseNotFoundWithException()
     {
-        $instance = $this->createConfiguredMock(
-            Instance::class,
-            [
-                'databases' => [
-                    $this->createConfiguredMock(Database::class, ['name' => 'titi']),
-                    $this->createConfiguredMock(Database::class, ['name' => 'another']),
-                    $this->createConfiguredMock(Database::class, ['name' => 'still-not-exist']),
-                ],
-                'name' => 'instance-name',
-                'database' => $this->createMock(Database::class),
-            ]
-        );
+        $dbName = 'db-name';
+        $options = ['some' => 'options'];
+
+        $database = $this->createMock(Database::class);
+
+        $instance = $this->createMock(Instance::class);
+        $instance->method('database')->with($dbName, $options)->willReturn($database);
+        
         $driver = $this->subject;
         $this->setPrivateProperty($driver, 'instance', $instance);
 
-        $this->expectException(NotFoundException::class);
-        $this->expectExceptionMessage(sprintf("Database '%s' does not exist on instance '%s'.", 'not-existing', 'instance-name'));
-        $driver->selectDatabase('not-existing', []);
+        $this->assertEquals($database, $driver->selectDatabase($dbName, $options));
     }
 
     public function testParseParameters()

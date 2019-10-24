@@ -135,7 +135,9 @@ class SpannerStatementTest extends TestCase
         $subject = new SpannerStatement($this->database, $originalSql, $this->parameterTranslator);
         $subject->setLogger($logger);
 
-        $this->assertFalse($subject->execute());
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage($message);
+        $subject->execute();
         $this->assertTrue($logger->hasRecordThatContains($message . ' in the statement \'' . $originalSql . '\'.', LogLevel::ERROR));
     }
 
@@ -176,7 +178,9 @@ class SpannerStatementTest extends TestCase
         $subject = new SpannerStatement($this->database, $originalSql, $this->parameterTranslator);
         $subject->setLogger($logger);
 
-        $this->assertFalse($subject->execute($parameters));
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage($message);
+        $subject->execute($parameters);
         $this->assertTrue($logger->hasRecordThatContains($message, LogLevel::ERROR));
     }
 
@@ -188,18 +192,18 @@ class SpannerStatementTest extends TestCase
         $affectedRows = 12;
 
         $this->parameterTranslator->method('translatePlaceHolders')->with($originalSql)->willReturn($newSql);
-        $this->parameterTranslator->method('convertPositionalToNamed')->willReturn([$parameters,[]]);
+        $this->parameterTranslator->method('convertPositionalToNamed')->willReturn([$parameters, []]);
 
         $transaction = $this->getMockBuilder(Transaction::class)
             ->disableOriginalConstructor()
-            ->setMethods(['executeUpdate','commit'])
+            ->setMethods(['executeUpdate', 'commit'])
             ->getMock();
         $transaction->method('executeUpdate')->with($newSql, ['parameters' => $parameters, 'types' => []])->willReturn($affectedRows);
         $transaction->expects($this->once())->method('commit');
 
         $this->database->method('runTransaction')
             ->with($this->callback(
-                function($closure) use ($transaction) {
+                function ($closure) use ($transaction) {
                     return $closure($transaction);
                 }
             ))

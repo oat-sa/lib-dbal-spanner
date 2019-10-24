@@ -92,8 +92,8 @@ class SpannerPlatformTest extends TestCase
             ['getDateTimeTzFormatString', 'Y-m-d\TH:i:s.u\Z'],
             ['getDateTypeDeclarationSQL', 'DATE'],
             ['getFloatDeclarationSQL', 'FLOAT64'],
-            ['getClobTypeDeclarationSQL', 'BYTES'],
-            ['getBlobTypeDeclarationSQL', 'BYTES'],
+            ['getClobTypeDeclarationSQL', 'STRING(MAX)'],
+            ['getBlobTypeDeclarationSQL', 'STRING(MAX)'],
             ['getIdentifierQuoteCharacter', ''],
         ];
     }
