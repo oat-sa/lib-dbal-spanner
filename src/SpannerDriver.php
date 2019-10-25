@@ -158,4 +158,26 @@ class SpannerDriver implements Driver
 
         return $this->instance;
     }
+
+    /**
+     * Returns a list of database names existing on a Spanner instance.
+     *
+     * @param string $instanceName
+     *
+     * @return array|string[]
+     * @throws GoogleException
+     */
+    public function listDatabases(string $instanceName = ''): array
+    {
+        if ($instanceName === '') {
+            $instanceName = $this->instanceName;
+        }
+        $databaseList = [];
+        foreach ($this->getInstance($instanceName)->databases() as $database) {
+            if ($database instanceof Database) {
+                $databaseList[] = basename($database->name());
+            }
+        }
+        return $databaseList;
+    }
 }
