@@ -172,4 +172,34 @@ class SpannerDriverTest extends TestCase
         $this->assertEquals($instance, $this->subject->getInstance($instanceName));
         $this->assertEquals($instanceName, $this->getPrivateProperty($this->subject, 'instanceName'));
     }
+
+    public function testListDatabases()
+    {
+        $instance = $this->createConfiguredMock(
+            Instance::class,
+            [
+                'databases' => [
+                    'database1',
+                    $this->createConfiguredMock(Database::class, ['name' => 'salut']),
+                    $this->createConfiguredMock(Database::class, ['name' => '195.168.1.2/test.db']),
+                ],
+            ]
+        );
+        $this->setPrivateProperty($this->subject, 'instance', $instance);
+        
+        $this->assertEquals(['salut', 'test.db'], $this->subject->listDatabases('test'));
+    }
+    
+    public function testListDatabasesWithNullInstanceName()
+    {
+        $instance = $this->createMock(Instance::class);
+        $instance->expects($this->once())
+            ->method('databases')
+            ->willReturn([$this->createConfiguredMock(Database::class, ['name' => 'salut'])]);
+        
+        $this->setPrivateProperty($this->subject, 'instance', $instance);
+        $this->setPrivateProperty($this->subject, 'instanceName', 'fixture');
+        
+        $this->assertEquals(['salut'], $this->subject->listDatabases(''));
+    }
 }
