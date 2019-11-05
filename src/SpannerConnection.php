@@ -21,11 +21,13 @@ declare(strict_types=1);
 
 namespace OAT\Library\DBALSpanner;
 
+use Closure;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\Connection;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Doctrine\DBAL\ParameterType;
 use Google\Cloud\Spanner\Database;
+use Google\Cloud\Spanner\Timestamp;
 use Google\Cloud\Spanner\Transaction;
 
 class SpannerConnection implements Connection
@@ -83,32 +85,21 @@ class SpannerConnection implements Connection
         $statement = sprintf(
             'DELETE FROM %s WHERE %s',
             $tableExpression,
-            $this->forgeWhereClause($identifier)
+            $this->forgeWhereClause($identifier, $types)
         );
 
         return $this->exec($statement);
     }
 
     /**
-     * Gathers conditions for an update or delete call.
+     * @param string $tableExpression
+     * @param array  $data
+     * @param array  $identifier
+     * @param array  $types
      *
-     * @param mixed[] $identifiers Input array of columns to values
-     *
-     * @return string the conditions
+     * @return int|mixed
+     * @throws InvalidArgumentException
      */
-    protected function forgeWhereClause(array $identifiers)
-    {
-        $conditions = [];
-
-        foreach ($identifiers as $columnName => $value) {
-            $conditions[] = $value !== null
-                ? $columnName . ' = ' . $this->quoteString($value)
-                : $this->driver->getDatabasePlatform()->getIsNullExpression($columnName);
-        }
-
-        return implode(' AND ', $conditions);
-    }
-
     public function update($tableExpression, array $data, array $identifier, array $types = [])
     {
         if (empty($identifier)) {
@@ -118,14 +109,14 @@ class SpannerConnection implements Connection
         $sets = [];
 
         foreach ($data as $columnName => $value) {
-            $sets[] = $columnName . ' = ' . $this->quoteString($value);
+            $sets[] = $columnName . ' = ' . $this->quoteString($value, $types[$columnName] ?? '');
         }
 
         $statement = sprintf(
             'UPDATE %s SET %s WHERE %s',
             $tableExpression,
             implode(', ', $sets),
-            $this->forgeWhereClause($identifier)
+            $this->forgeWhereClause($identifier, $types)
         );
 
         return $this->exec($statement);
@@ -137,15 +128,62 @@ class SpannerConnection implements Connection
     }
 
     /**
+     * Gathers conditions for an update or delete call.
+     *
+     * @param mixed[] $identifiers Input array of columns to values
+     * @param array   $types
+     *
+     * @return string the conditions
+     */
+    protected function forgeWhereClause(array $identifiers, array $types = [])
+    {
+        $conditions = [];
+
+        foreach ($identifiers as $columnName => $value) {
+            $conditions[] = $value === null
+                ? $this->driver->getDatabasePlatform()->getIsNullExpression($columnName)
+                : $columnName . ' = ' . $this->quoteString($value, $types[$columnName] ?? '');
+        }
+
+        return implode(' AND ', $conditions);
+    }
+
+    /**
      * Quotes strings only.
      *
      * @param mixed $value
+     * @param int|string   $type
      *
      * @return mixed
      */
-    public function quoteString($value)
+    public function quoteString($value, $type = '')
     {
-        return $this->quote($value, is_string($value) ? ParameterType::STRING : ParameterType::INTEGER);
+        return $this->quote($value, $this->getParameterType($value, $type));
+    }
+
+    /**
+     * Tries to detect the value type if not precised.
+     * 
+     * @param mixed $value
+     * @param int|string $type
+     *
+     * @return int
+     */
+    protected function getParameterType($value, $type): int
+    {
+        if ($type !== '') {
+            return $type;
+        }
+        if ($value === null) {
+            return ParameterType::NULL;
+        }
+        if (is_bool($value)) {
+            return ParameterType::BOOLEAN;
+        }
+        if (is_int($value)) {
+            return ParameterType::INTEGER;
+        }
+        return ParameterType::STRING;
     }
 
     public function quote($input, $type = ParameterType::STRING)
