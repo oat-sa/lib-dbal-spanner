@@ -191,7 +191,7 @@ class StatementsCrudTest extends TestCase
      */
     public function testQueryWithWrongParametersThrowsException(string $exceptionMessage, string $sql, array $parameters = [])
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(DBALException::class);
         $this->expectExceptionMessage($exceptionMessage);
         $this->fetchAllResults($sql, $parameters);
     }
@@ -200,17 +200,17 @@ class StatementsCrudTest extends TestCase
     {
         return [
             [
-                "The statement 'SELECT * FROM statements WHERE modelid = ? AND subject = ?' expects exactly 2 parameters, 1 found.",
+                "An exception occurred while executing 'SELECT * FROM statements WHERE modelid = ? AND subject = ?' with params [2]:\n\nExpected exactly 2 parameter(s), 1 found.",
                 'SELECT * FROM statements WHERE modelid = ? AND subject = ?',
                 [2],
             ],
             [
-                "The statement 'SELECT * FROM statements WHERE modelid = ? AND subject = ?' expects exactly 2 parameters, 3 found.",
+                "An exception occurred while executing 'SELECT * FROM statements WHERE modelid = ? AND subject = ?' with params [2, \"foo\", \"bar\"]:\n\nExpected exactly 2 parameter(s), 3 found.",
                 'SELECT * FROM statements WHERE modelid = ? AND subject = ?',
                 [2, 'foo', 'bar'],
             ],
             [
-                "Statement 'SELECT * FROM statements WHERE modelid = :model AND subject = ?' can not use both named and positional parameters.",
+                "An exception occurred while executing 'SELECT * FROM statements WHERE modelid = :model AND subject = ?':\n\nCan not use both named and positional parameters.",
                 'SELECT * FROM statements WHERE modelid = :model AND subject = ?',
                 [2],
             ],
@@ -260,13 +260,16 @@ class StatementsCrudTest extends TestCase
         }
 
         $results = [];
-        foreach ($statement->fetchAll() as $row) {
-            $results[] = $row;
+        $rows = $statement->fetchAll();
+        if ($rows) {
+            foreach ($rows as $row) {
+                $results[] = $row;
+            }
         }
 
         return $results;
     }
-
+    
     /**
      * Generates a convenient triple for the sake of simplification.
      *

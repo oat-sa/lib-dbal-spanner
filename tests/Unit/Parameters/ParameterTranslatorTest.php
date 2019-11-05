@@ -103,7 +103,7 @@ class ParameterTranslatorTest extends TestCase
         $this->setPrivateProperty($this->subject, 'positionalParameterCount', 2);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Expected exactly 2 parameter(s), 1 found');
+        $this->expectExceptionMessage('Expected exactly 2 parameter(s), 1 found.');
         $this->subject->convertPositionalToNamed([], ['value1']);
     }
 

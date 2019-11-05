@@ -69,9 +69,7 @@ class ParameterTranslator
         }
 
         if ($named && $this->positionalParameterCount) {
-            throw new InvalidArgumentException(
-                sprintf("Statement '%s' can not use both named and positional parameters.", $sql)
-            );
+            throw new InvalidArgumentException('Can not use both named and positional parameters.');
         }
 
         return $translatedSql;
@@ -106,7 +104,7 @@ class ParameterTranslator
         if ($this->positionalParameterCount !== count($params)) {
             throw new InvalidArgumentException(
                 sprintf(
-                    'Expected exactly %d parameter(s), %d found',
+                    'Expected exactly %d parameter(s), %d found.',
                     $this->positionalParameterCount,
                     count($params)
                 )
