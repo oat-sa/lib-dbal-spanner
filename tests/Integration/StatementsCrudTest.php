@@ -45,7 +45,6 @@ class StatementsCrudTest extends TestCase
             'dbname' => self::DATABASE_NAME,
             'instance' => self::INSTANCE_NAME,
             'driverClass' => SpannerDriver::class,
-            'wrapperClass' => SpannerConnection::class,
             'platform' => new SpannerPlatform(),
         ];
 
