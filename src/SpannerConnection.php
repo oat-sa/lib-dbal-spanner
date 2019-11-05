@@ -30,6 +30,9 @@ use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Timestamp;
 use Google\Cloud\Spanner\Transaction;
 
+/**
+ * Class SpannerConnection
+ */
 class SpannerConnection implements Connection
 {
     /** @var Database */
@@ -47,6 +50,11 @@ class SpannerConnection implements Connection
         $this->driver = $driver;
     }
 
+    /**
+     * @param string $prepareString
+     *
+     * @return SpannerStatement
+     */
     public function prepare($prepareString)
     {
         if (isset($this->cachedStatements[$prepareString])) {
@@ -59,6 +67,9 @@ class SpannerConnection implements Connection
         return $statement;
     }
 
+    /**
+     * @return SpannerStatement
+     */
     public function query()
     {
         $args = func_get_args();
@@ -76,6 +87,14 @@ class SpannerConnection implements Connection
         return $statement;
     }
 
+    /**
+     * @param string $tableExpression
+     * @param array  $identifier
+     * @param array  $types
+     *
+     * @return int|mixed
+     * @throws InvalidArgumentException
+     */
     public function delete($tableExpression, array $identifier, array $types = [])
     {
         if (empty($identifier)) {
@@ -122,7 +141,13 @@ class SpannerConnection implements Connection
         return $this->exec($statement);
     }
 
-    public function insert($tableExpression, array $data, array $types = [])
+    /**
+     * @param string $tableExpression
+     * @param array  $data
+     *
+     * @return Timestamp|int
+     */
+    public function insert($tableExpression, array $data)
     {
         return $this->database->insert($tableExpression, $data);
     }
@@ -193,6 +218,11 @@ class SpannerConnection implements Connection
             : $input;
     }
 
+    /**
+     * @param string $statement
+     *
+     * @return int|mixed
+     */
     public function exec($statement)
     {
         // Runs schema manipulation on the DDL endpoint.
@@ -203,7 +233,7 @@ class SpannerConnection implements Connection
         }
 
         return $this->database->runTransaction(
-            function (Transaction $t) use ($statement) {
+            static function (Transaction $t) use ($statement) {
                 $rowCount = $t->executeUpdate($statement);
                 $t->commit();
                 return $rowCount;
@@ -236,17 +266,14 @@ class SpannerConnection implements Connection
 
     public function beginTransaction()
     {
-//        throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
     }
 
     public function commit()
     {
-//        throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
     }
 
     public function rollBack()
     {
-//        throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
     }
 
     public function errorCode()

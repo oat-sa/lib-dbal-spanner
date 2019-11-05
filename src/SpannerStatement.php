@@ -156,7 +156,7 @@ class SpannerStatement implements IteratorAggregate, Statement
             throw $exception;
         }
 
-        // DML statement is executed with a direct call to database execute.
+        // Non-DML statement is executed with a direct call to database execute.
         if (!$this->isDmlStatement($this->sql)) {
             $this->result = $this->database->execute($this->sql, ['parameters' => $parameters]);
             $this->rows = null;
@@ -354,18 +354,11 @@ class SpannerStatement implements IteratorAggregate, Statement
     {
         $fetchMode = $fetchMode ?: $this->defaultFetchMode;
 
-        switch ($fetchMode){
-            case PDO::FETCH_OBJ:
-                $this->fetchObjects = true;
-                return Result::RETURN_ASSOCIATIVE;
-            case PDO::FETCH_ASSOC:
-                $this->fetchObjects = false;
-                return Result::RETURN_ASSOCIATIVE;
-            default:
-                $this->fetchObjects = false;
-        }
+        $this->fetchObjects = ($fetchMode === PDO::FETCH_OBJ);
 
-        return $fetchMode;
+        return ($fetchMode === PDO::FETCH_OBJ || $fetchMode === PDO::FETCH_ASSOC)
+            ? Result::RETURN_ASSOCIATIVE
+            : $fetchMode;
     }
 
     /**
