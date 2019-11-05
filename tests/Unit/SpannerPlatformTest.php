@@ -95,6 +95,7 @@ class SpannerPlatformTest extends TestCase
             ['getClobTypeDeclarationSQL', 'STRING(MAX)'],
             ['getBlobTypeDeclarationSQL', 'STRING(MAX)'],
             ['getIdentifierQuoteCharacter', ''],
+            ['getWriteLockSQL', ''],
         ];
     }
 

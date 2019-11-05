@@ -2,6 +2,7 @@
 
 namespace OAT\Library\DBALSpanner\Tests\Unit;
 
+use Closure;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
@@ -84,7 +85,7 @@ class SpannerConnectionTest extends TestCase
     {
         $longRunningOperation = $this->createMock(LongRunningOperation::class);
         $longRunningOperation->expects($this->once())->method('pollUntilComplete');
-        
+
         $database = $this->createMock(Database::class);
         $database->method('updateDdl')->with($query)->willReturn($longRunningOperation);
 
@@ -262,6 +263,28 @@ class SpannerConnectionTest extends TestCase
         $connection->update($tableName, $data, $identifiers);
     }
 
+    public function testTransactional()
+    {
+        $transaction = $this->createMock(Transaction::class);
+
+        // This function just returns the trabnsaction object, so that we can easily test whether it's well passed.
+        $closure = static function (Transaction $t) {
+            return $t;
+        };
+
+        $database = $this->createMock(Database::class);
+        $database
+            ->expects($this->once())
+            ->method('runTransaction')
+            ->with($this->callback(static function (Closure $transactionContent) use ($transaction, $closure) {
+                return $transactionContent($transaction) === $closure($transaction);
+            }))
+            ->willReturn($transaction);
+
+        $connection = $this->getSpannerConnection(null, $database);
+        $this->assertEquals($transaction, $connection->transactional($closure));
+    }
+
     public function testLastInsertId()
     {
         $this->expectException(\Exception::class);
@@ -270,20 +293,17 @@ class SpannerConnectionTest extends TestCase
 
     public function testBeginTransaction()
     {
-        $this->expectException(\Exception::class);
-        $this->getSpannerConnection()->beginTransaction();
+        $this->assertNull($this->getSpannerConnection()->beginTransaction());
     }
 
     public function testCommit()
     {
-        $this->expectException(\Exception::class);
-        $this->getSpannerConnection()->commit();
+        $this->assertNull($this->getSpannerConnection()->commit());
     }
 
     public function testRollBack()
     {
-        $this->expectException(\Exception::class);
-        $this->getSpannerConnection()->rollBack();
+        $this->assertNull($this->getSpannerConnection()->rollBack());
     }
 
     public function testErrorCode()

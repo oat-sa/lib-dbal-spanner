@@ -20,6 +20,7 @@
 namespace OAT\Library\DBALSpanner\Tests\Unit;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DBALException;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Instance;
 use Google\Cloud\Spanner\SpannerClient;
@@ -53,6 +54,13 @@ class SpannerDriverTest extends TestCase
         $this->subject = new SpannerDriver($this->spannerClientFactory);
     }
 
+    public function testConstructorWithDefaultValues()
+    {
+        $subject = new SpannerDriver();
+        
+        $this->assertInstanceOf(SpannerClientFactory::class, $this->getPrivateProperty($subject, 'spannerClientFactory'));
+    }
+    
     public function testConnect()
     {
         $instance = $this->createConfiguredMock(
@@ -96,6 +104,31 @@ class SpannerDriverTest extends TestCase
         $this->assertEquals('fixture', $driver->getDatabase($this->createMock(Connection::class)));
     }
 
+    public function testTransactional()
+    {
+        $value = 'whatever';
+        $closure = static function () use ($value) {
+            return $value;
+        };
+        
+        $connection = $this->createMock(SpannerConnection::class);
+        $connection->method('transactional')->with($closure)->willReturn($closure());
+        $this->setPrivateProperty($this->subject, 'connection', $connection);
+        
+        $this->assertEquals($value, $this->subject->transactional($closure));
+    }
+
+    /**
+     * @throws DBALException
+     */
+    public function testTransactionalWithoutConnectionThrowsException()
+    {
+        $this->expectException(DBALException::class);
+        $this->expectExceptionMessage('Can not run transaction without connecting first.');
+        $this->subject->transactional(function () {
+        });
+    }
+
     public function testSelectDatabaseNotFoundWithException()
     {
         $dbName = 'db-name';
@@ -105,7 +138,7 @@ class SpannerDriverTest extends TestCase
 
         $instance = $this->createMock(Instance::class);
         $instance->method('database')->with($dbName, $options)->willReturn($database);
-        
+
         $driver = $this->subject;
         $this->setPrivateProperty($driver, 'instance', $instance);
 

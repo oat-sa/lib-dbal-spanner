@@ -173,6 +173,15 @@ class SpannerConnection implements Connection
         );
     }
 
+    public function transactional(Closure $func)
+    {
+        return $this->database->runTransaction(
+            static function (Transaction $t) use ($func) {
+                return $func($t);
+            }
+        );
+    }
+
     public function isDdlStatement($statement)
     {
         $statement = ltrim($statement);

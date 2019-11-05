@@ -21,6 +21,7 @@ declare(strict_types=1);
 
 namespace OAT\Library\DBALSpanner;
 
+use Closure;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver;
@@ -47,6 +48,9 @@ class SpannerDriver implements Driver
     /** @var SpannerClientFactory */
     private $spannerClientFactory;
 
+    /** @var SpannerConnection */
+    private $connection;
+    
     /**
      * SpannerDriver constructor.
      *
@@ -78,7 +82,9 @@ class SpannerDriver implements Driver
         $cacheSessionPool->setDatabase($database);
         $cacheSessionPool->warmup();
 
-        return new SpannerConnection($this, $database);
+        $this->connection = new SpannerConnection($this, $database);
+
+        return $this->connection;
     }
 
     public function getDatabasePlatform()
@@ -101,6 +107,15 @@ class SpannerDriver implements Driver
         return $this->databaseName;
     }
 
+    public function transactional(Closure $closure)
+    {
+        if (!$this->connection instanceof SpannerConnection) {
+            throw new DBALException('Can not run transaction without connecting first.');
+        }
+        
+        return $this->connection->transactional($closure);
+    }
+    
     /**
      * Selects a database if it exists.
      *
@@ -172,12 +187,14 @@ class SpannerDriver implements Driver
         if ($instanceName === '') {
             $instanceName = $this->instanceName;
         }
+
         $databaseList = [];
         foreach ($this->getInstance($instanceName)->databases() as $database) {
             if ($database instanceof Database) {
                 $databaseList[] = basename($database->name());
             }
         }
+
         return $databaseList;
     }
 }
