@@ -30,8 +30,8 @@ use PHPUnit\Framework\TestCase;
 
 class StatementsCrudTest extends TestCase
 {
-    protected const INSTANCE_NAME = 'php-dbal-tests';
-    protected const DATABASE_NAME = 'spanner-test';
+    protected const INSTANCE_NAME = 'tao-curgen-inst';
+    protected const DATABASE_NAME = 'julien-dbal-driver-tests';
 
     /** @var SpannerConnection */
     protected $connection;

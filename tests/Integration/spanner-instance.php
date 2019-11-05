@@ -22,8 +22,8 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 use OAT\Library\DBALSpanner\Tests\Integration\EchoLogger;
 use OAT\Library\DBALSpanner\Tests\Integration\SpannerDatabaseInstanceManager;
 
-$instanceName = 'php-dbal-tests';
-$databaseName = 'spanner-test';
+$instanceName = 'tao-curgen-inst';
+$databaseName = 'julien-dbal-driver-tests';
 
 $logger = new EchoLogger();
 $spanner = new SpannerDatabaseInstanceManager();
@@ -32,7 +32,7 @@ $spanner->setLogger($logger);
 if (isset($argv[1])) {
     switch ($argv[1]) {
         case 'start':
-            $spanner->createInstance($instanceName);
+//            $spanner->createInstance($instanceName);
 
             $spanner->createDatabase($instanceName, $databaseName, [
                 'CREATE TABLE statements (
@@ -51,7 +51,7 @@ if (isset($argv[1])) {
             break;
 
         case 'stop':
-            $spanner->deleteInstance($instanceName);
+//            $spanner->deleteInstance($instanceName);
             break;
 
         case 'list':
