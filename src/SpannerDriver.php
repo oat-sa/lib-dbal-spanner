@@ -163,10 +163,6 @@ class SpannerDriver implements Driver
         if ($this->instance === null) {
             $spannerClient = $this->spannerClientFactory->create();
             $instance = $spannerClient->instance($instanceName);
-            if (!$instance->exists()) {
-                throw new LogicException(sprintf("Instance '%s' does not exist.", $instanceName));
-            }
-
             $this->instanceName = $instanceName;
             $this->instance = $instance;
         }
