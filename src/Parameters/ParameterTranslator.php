@@ -28,7 +28,7 @@ use PhpMyAdmin\SqlParser\Token;
 class ParameterTranslator
 {
     /** @var int */
-    protected $positionalParameterCount = 0;
+    private $positionalParameterCount = 0;
 
     /**
      * Detects the optional parameter syntax.
