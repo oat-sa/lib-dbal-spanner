@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,8 +19,6 @@
  *
  * Copyright (c) 2019 (original work) Open Assessment Technologies SA;
  */
-
-declare(strict_types=1);
 
 namespace OAT\Library\DBALSpanner;
 
@@ -44,6 +45,11 @@ class SpannerPlatform extends AbstractPlatform
         return 'INT64';
     }
 
+    protected function getQueryBuilder()
+    {
+        return new QueryBuilder();
+    }
+
     public function getListTablesSQL()
     {
         return 'SELECT table_name
@@ -54,24 +60,24 @@ class SpannerPlatform extends AbstractPlatform
 
     public function getListTableColumnsSQL($table, $database = null)
     {
-        return 'SELECT column_name AS Field, spanner_type AS Type, is_nullable AS `Null`, "" AS `Key`, "" AS `Default`, "" AS Extra, "" AS Comment
+        return sprintf('SELECT column_name AS Field, spanner_type AS Type, is_nullable AS `Null`, "" AS `Key`, "" AS `Default`, "" AS Extra, "" AS Comment
       FROM information_schema.columns
-      WHERE table_name = "' . $table . '"
+      WHERE table_name = "%s"
       AND table_catalog = "" 
       AND table_schema = ""
-      ORDER BY ordinal_position';
+      ORDER BY ordinal_position', $table);
     }
 
     public function getListTableIndexesSQL($table, $currentDatabase = null)
     {
-        return 'SELECT is_unique AS Non_Unique, i.index_name AS Key_name, column_name AS Column_Name, "" AS Sub_Part, i.index_type AS Index_Type
+        return sprintf('SELECT is_unique AS Non_Unique, i.index_name AS Key_name, column_name AS Column_Name, "" AS Sub_Part, i.index_type AS Index_Type
       FROM information_schema.indexes i
       INNER JOIN information_schema.index_columns ic
               ON i.table_name = ic.table_name
-      WHERE i.table_name = "' . $table . '"
+      WHERE i.table_name = "%s"
       AND i.table_catalog = "" 
       AND i.table_schema = ""
-      ORDER BY ordinal_position';
+      ORDER BY ordinal_position', $table);
     }
 
     public function supportsForeignKeyConstraints()

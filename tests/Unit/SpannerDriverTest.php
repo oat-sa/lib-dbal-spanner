@@ -189,9 +189,7 @@ class SpannerDriverTest extends TestCase
         $spannerClient = $this->createConfiguredMock(SpannerClient::class, ['instance' => $instance]);
         $this->spannerClientFactory->method('create')->willReturn($spannerClient);
 
-        $this->expectException(LogicException::class);
-        $this->expectExceptionMessage('Instance \'' . $instanceName . '\' does not exist.');
-        $this->subject->getInstance($instanceName);
+        $this->assertSame($instance, $this->subject->getInstance($instanceName));
     }
 
     public function testGetInstanceWithExistingInstanceSetsInstanceNameAndReturnsInstance()

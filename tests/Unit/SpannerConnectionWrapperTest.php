@@ -120,8 +120,10 @@ class SpannerConnectionWrapperTest extends TestCase
 
     public function testLastInsertId()
     {
-        $this->expectException(\Exception::class);
-        $this->getConnectionWrapper($this->createMock(SpannerConnection::class))->lastInsertId();
+        $mock = $this->createMock(SpannerConnection::class);
+        $mock->expects($this->once())
+            ->method('lastInsertId');
+        $this->getConnectionWrapper($mock)->lastInsertId();
     }
 
     public function testBeginTransaction()
@@ -153,14 +155,18 @@ class SpannerConnectionWrapperTest extends TestCase
 
     public function testErrorCode()
     {
-        $this->expectException(\Exception::class);
-        $this->getConnectionWrapper($this->createMock(SpannerConnection::class))->errorCode();
+        $mock = $this->createMock(SpannerConnection::class);
+        $mock->expects($this->once())
+            ->method('errorCode');
+        $this->getConnectionWrapper($mock)->errorCode();
     }
 
     public function testErrorInfo()
     {
-        $this->expectException(\Exception::class);
-        $this->getConnectionWrapper($this->createMock(SpannerConnection::class))->errorInfo();
+        $mock = $this->createMock(SpannerConnection::class);
+        $mock->expects($this->once())
+            ->method('errorInfo');
+        $this->getConnectionWrapper($mock)->errorInfo();
     }
 
     public function expectNoException(callable $function): void
