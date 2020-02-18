@@ -82,7 +82,6 @@ class ParameterTranslator
      *
      * @param array $boundValues
      *
-     * @param array|null $boundTypes
      * @return array
      * @throws InvalidArgumentException when a wrong number of parameters is provided.
      */
