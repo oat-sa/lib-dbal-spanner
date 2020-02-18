@@ -82,7 +82,6 @@ class ParameterTranslator
      *
      * @param array $boundValues
      *
-     * @return array
      * @throws InvalidArgumentException when a wrong number of parameters is provided.
      */
     public function convertPositionalToNamed(array $boundValues, array $params = null, array $boundTypes = null): array
