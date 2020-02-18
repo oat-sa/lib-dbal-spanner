@@ -78,7 +78,7 @@ class ParameterTranslator
 
     /**
      * Translates the positional parameters into named parameters.
-     * Takes care about types mapp
+     * Takes care about types map
      *
      * @param array $boundValues
      * @param array|null $params
