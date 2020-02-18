@@ -1,20 +1,42 @@
 <?php
 
+/**
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; under version 2
+ * of the License (non-upgradable).
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * Copyright (c) 2020 (original work) Open Assessment Technologies SA;
+ */
+
 declare(strict_types=1);
 
 namespace OAT\Library\DBALSpanner;
 
+use Closure;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver;
 use Google\Cloud\Core\Exception\GoogleException;
 use Google\Cloud\Core\Exception\NotFoundException;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Instance;
-use Google\Cloud\Spanner\SpannerClient;
 use LogicException;
+use OAT\Library\DBALSpanner\SpannerClient\SpannerClientFactory;
 
 class SpannerDriver implements Driver
 {
+    public const DRIVER_NAME = 'gcp-spanner';
+
     /** @var Instance */
     private $instance;
 
@@ -24,23 +46,46 @@ class SpannerDriver implements Driver
     /** @var string */
     private $databaseName;
 
+    /** @var SpannerClientFactory */
+    private $spannerClientFactory;
+
+    /** @var SpannerConnection */
+    private $connection;
+    
+    /**
+     * SpannerDriver constructor.
+     *
+     * @param SpannerClientFactory $spannerClientFactory
+     */
+    public function __construct(SpannerClientFactory $spannerClientFactory = null)
+    {
+        if ($spannerClientFactory === null) {
+            $spannerClientFactory = new SpannerClientFactory();
+        }
+        $this->spannerClientFactory = $spannerClientFactory;
+    }
+
     /**
      * @inheritdoc
      *
      * @throws LogicException When a parameter is missing or ext/grpc is missing or the instance does not exist.
+     * @throws GoogleException When ext/grpc is missing.
      * @throws NotFoundException when database does not exist.
-     * @throws \Doctrine\DBAL\DBALException
+     * @throws DBALException
      */
     public function connect(array $params, $username = null, $password = null, array $driverOptions = [])
     {
         [$this->instanceName, $this->databaseName] = $this->parseParameters($params);
-
         $this->instance = $this->getInstance($this->instanceName);
 
-        $connection = new SpannerConnection($params, $this);
-        $connection->setDatabase($this->selectDatabase($this->databaseName));
+        $cacheSessionPool = $this->spannerClientFactory->createCacheSessionPool();
+        $database = $this->selectDatabase($this->databaseName, ['sessionPool' => $cacheSessionPool]);
+        $cacheSessionPool->setDatabase($database);
+        $cacheSessionPool->warmup();
 
-        return $connection;
+        $this->connection = new SpannerConnection($this, $database);
+
+        return $this->connection;
     }
 
     public function getDatabasePlatform()
@@ -50,12 +95,12 @@ class SpannerDriver implements Driver
 
     public function getSchemaManager(Connection $conn)
     {
-        return new SpannerSchemaManager($conn);
+        return new SpannerSchemaManager($conn, new SpannerPlatform());
     }
 
     public function getName()
     {
-        return 'gcp-spanner';
+        return self::DRIVER_NAME;
     }
 
     public function getDatabase(Connection $conn)
@@ -63,25 +108,27 @@ class SpannerDriver implements Driver
         return $this->databaseName;
     }
 
+    public function transactional(Closure $closure)
+    {
+        if (!$this->connection instanceof SpannerConnection) {
+            throw new DBALException('Can not run transaction without connecting first.');
+        }
+        
+        return $this->connection->transactional($closure);
+    }
+    
     /**
      * Selects a database if it exists.
      *
      * @param string $databaseName
+     * @param array $options connection options containing for example a sessionPool
      *
      * @return Database
-     * @throws NotFoundException when database does not exist.
      */
-    public function selectDatabase(string $databaseName): Database
+    public function selectDatabase(string $databaseName, array $options): Database
     {
-        if (!in_array($databaseName, $this->showDatabases())) {
-            throw new NotFoundException(
-                sprintf("Database '%s' does not exist on instance '%s'.", $databaseName, $this->instance->name())
-            );
-        }
-
-        return $this->instance->database($databaseName);
+        return $this->instance->database($databaseName, $options);
     }
-
 
     /**
      * Ensures that necessary parameters are provided.
@@ -109,22 +156,15 @@ class SpannerDriver implements Driver
      * @param string $instanceName
      *
      * @return Instance
-     * @throws LogicException When ext/grpc is missing or the instance does not exist.
+     * @throws GoogleException When ext/grpc is missing.
+     * @throws LogicException When the instance does not exist.
      */
     public function getInstance(string $instanceName): Instance
     {
         if ($this->instance === null) {
-            try {
-                $spanner = new SpannerClient();
-            } catch (GoogleException $exception) {
-                throw new LogicException('gRPC extension is not installed or enabled.');
-            }
-
-            $instance = $spanner->instance($instanceName);
-            if (!$instance->exists()) {
-                throw new LogicException(sprintf("Instance '%s' does not exist.", $instanceName));
-            }
-
+            $spannerClient = $this->spannerClientFactory->create();
+            $instance = $spannerClient->instance($instanceName);
+            $this->instanceName = $instanceName;
             $this->instance = $instance;
         }
 
@@ -134,12 +174,19 @@ class SpannerDriver implements Driver
     /**
      * Returns a list of database names existing on a Spanner instance.
      *
+     * @param string $instanceName
+     *
      * @return array|string[]
+     * @throws GoogleException
      */
-    public function showDatabases(): array
+    public function listDatabases(string $instanceName = ''): array
     {
+        if ($instanceName === '') {
+            $instanceName = $this->instanceName;
+        }
+
         $databaseList = [];
-        foreach ($this->instance->databases() as $database) {
+        foreach ($this->getInstance($instanceName)->databases() as $database) {
             if ($database instanceof Database) {
                 $databaseList[] = basename($database->name());
             }

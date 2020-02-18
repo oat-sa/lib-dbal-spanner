@@ -1,4 +1,23 @@
 <?php
+
+/**
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; under version 2
+ * of the License (non-upgradable).
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * Copyright (c) 2019 (original work) Open Assessment Technologies SA;
+ */
+
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Doctrine\DBAL\DBALException;
@@ -12,8 +31,8 @@ use PHPUnit\Framework\TestCase;
 
 class StatementsCrudTest extends TestCase
 {
-    protected const INSTANCE_NAME = 'php-dbal-tests';
-    protected const DATABASE_NAME = 'spanner-test';
+    protected const INSTANCE_NAME = 'tao-curgen-inst';
+    protected const DATABASE_NAME = 'julien-dbal-driver-tests';
 
     /** @var SpannerConnection */
     protected $connection;
@@ -27,7 +46,6 @@ class StatementsCrudTest extends TestCase
             'dbname' => self::DATABASE_NAME,
             'instance' => self::INSTANCE_NAME,
             'driverClass' => SpannerDriver::class,
-            'wrapperClass' => SpannerConnection::class,
             'platform' => new SpannerPlatform(),
         ];
 
@@ -173,7 +191,7 @@ class StatementsCrudTest extends TestCase
      */
     public function testQueryWithWrongParametersThrowsException(string $exceptionMessage, string $sql, array $parameters = [])
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(DBALException::class);
         $this->expectExceptionMessage($exceptionMessage);
         $this->fetchAllResults($sql, $parameters);
     }
@@ -182,17 +200,17 @@ class StatementsCrudTest extends TestCase
     {
         return [
             [
-                "The statement 'SELECT * FROM statements WHERE modelid = ? AND subject = ?' expects exactly 2 parameters, 1 found.",
+                "An exception occurred while executing 'SELECT * FROM statements WHERE modelid = ? AND subject = ?' with params [2]:\n\nExpected exactly 2 parameter(s), 1 found.",
                 'SELECT * FROM statements WHERE modelid = ? AND subject = ?',
                 [2],
             ],
             [
-                "The statement 'SELECT * FROM statements WHERE modelid = ? AND subject = ?' expects exactly 2 parameters, 3 found.",
+                "An exception occurred while executing 'SELECT * FROM statements WHERE modelid = ? AND subject = ?' with params [2, \"foo\", \"bar\"]:\n\nExpected exactly 2 parameter(s), 3 found.",
                 'SELECT * FROM statements WHERE modelid = ? AND subject = ?',
                 [2, 'foo', 'bar'],
             ],
             [
-                "Statement 'SELECT * FROM statements WHERE modelid = :model AND subject = ?' can not use both named and positional parameters.",
+                "An exception occurred while executing 'SELECT * FROM statements WHERE modelid = :model AND subject = ?':\n\nCan not use both named and positional parameters.",
                 'SELECT * FROM statements WHERE modelid = :model AND subject = ?',
                 [2],
             ],
@@ -242,13 +260,16 @@ class StatementsCrudTest extends TestCase
         }
 
         $results = [];
-        foreach ($statement->fetchAll() as $row) {
-            $results[] = $row;
+        $rows = $statement->fetchAll();
+        if ($rows) {
+            foreach ($rows as $row) {
+                $results[] = $row;
+            }
         }
 
         return $results;
     }
-
+    
     /**
      * Generates a convenient triple for the sake of simplification.
      *

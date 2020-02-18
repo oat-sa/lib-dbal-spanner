@@ -8,15 +8,14 @@
     ],
     "require": {
         "php": "^7.2",
-        "ext-json": "^1.6",
         "ext-PDO": "^7.2",
         "doctrine/dbal": "^2.9",
-        "google/protobuf": "^3.7",
         "google/cloud-spanner": "^1.15",
-        "grpc/grpc": "^1.19"
+        "phpmyadmin/sql-parser": "^5.2.0"
     },
     "require-dev":  {
-        "phpunit/phpunit": "^8.1"
+        "phpunit/phpunit": "^8.1",
+        "php-mock/php-mock": "^2.1"
     },
     "autoload": {
         "psr-4": {
