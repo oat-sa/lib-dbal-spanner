@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -188,7 +189,7 @@ class SpannerConnection implements Connection
 
     /**
      * Tries to detect the value type if not precised.
-     * 
+     *
      * @param mixed $value
      * @param int|string $type
      *

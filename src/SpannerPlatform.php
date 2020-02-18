@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,6 +17,8 @@ declare(strict_types=1);
  *
  * Copyright (c) 2019 (original work) Open Assessment Technologies SA;
  */
+
+declare(strict_types=1);
 
 namespace OAT\Library\DBALSpanner;
 
@@ -60,7 +60,9 @@ class SpannerPlatform extends AbstractPlatform
 
     public function getListTableColumnsSQL($table, $database = null)
     {
-        return sprintf('SELECT column_name AS Field, spanner_type AS Type, is_nullable AS `Null`, "" AS `Key`, "" AS `Default`, "" AS Extra, "" AS Comment
+        return sprintf('SELECT 
+      column_name AS Field, spanner_type AS Type, is_nullable AS `Null`, 
+      "" AS `Key`, "" AS `Default`, "" AS Extra, "" AS Comment
       FROM information_schema.columns
       WHERE table_name = "%s"
       AND table_catalog = "" 

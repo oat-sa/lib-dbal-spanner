@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -44,7 +45,10 @@ class SpannerClientFactory
         $keyFileName = $_ENV[self::KEY_FILE_ENV_VARIABLE] ?? self::DEFAULT_CREDENTIALS_FILE;
         if ($keyFileName === '') {
             new GoogleException(
-                sprintf('Missing path to Google credentials key file (should be set as an environment variable "%s").', self::KEY_FILE_ENV_VARIABLE)
+                sprintf(
+                    'Missing path to Google credentials key file (should be set as an environment variable "%s").',
+                    self::KEY_FILE_ENV_VARIABLE
+                )
             );
         }
 

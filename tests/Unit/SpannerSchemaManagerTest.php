@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -109,7 +110,10 @@ class SpannerSchemaManagerTest extends TestCase
     {
         $tableName = 'a table\'s name';
 
-        $this->assertEquals($tableName, $this->invokePrivateMethod($this->subject, '_getPortableTableDefinition', [['table_name' => $tableName]]));
+        $this->assertEquals(
+            $tableName,
+            $this->invokePrivateMethod($this->subject, '_getPortableTableDefinition', [['table_name' => $tableName]])
+        );
     }
 
     public function testGetPortableTableIndexesList()

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,7 +35,7 @@ class SpannerSchemaManager extends AbstractSchemaManager
         return $this->_conn->getDriver()->listDatabases();
     }
 
-    public function createDatabase($databaseName): Void
+    public function createDatabase($databaseName): void
     {
         throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
     }

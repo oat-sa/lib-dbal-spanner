@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -65,7 +66,7 @@ class TransactionalTest
         $connection = $this->getConnection();
 
         $connection->transactional(
-            function($transaction) use ($process) {
+            function ($transaction) use ($process) {
                 $this->operation($transaction, $process);
             }
         );
