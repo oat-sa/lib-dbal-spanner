@@ -1,0 +1,30 @@
+{
+    "name": "oat-sa/lib-dbal-spanner",
+    "type": "library",
+    "description": "Doctrine DBAL driver for Google Cloud Platform Spanner",
+    "license": "GPLv2",
+    "authors": [
+        {"name": "Julien Sébire", "email": "julien.sebire@taotesting.com"}
+    ],
+    "require": {
+        "php": "^7.2",
+        "ext-PDO": "^7.2",
+        "doctrine/dbal": "^2.9",
+        "google/cloud-spanner": "^1.15",
+        "phpmyadmin/sql-parser": "^5.2.0"
+    },
+    "require-dev":  {
+        "phpunit/phpunit": "^8.1",
+        "php-mock/php-mock": "^2.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "OAT\\Library\\DBALSpanner\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "OAT\\Library\\DBALSpanner\\Tests\\": "tests/"
+        }
+    }
+}
