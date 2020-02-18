@@ -81,7 +81,6 @@ class ParameterTranslator
      * Takes care about types map
      *
      * @param array $boundValues
-     * @param array|null $params
      *
      * @param array|null $boundTypes
      * @return array
