@@ -34,7 +34,10 @@ class SpannerPlatformTest extends TestCase
      */
     public function testGetImplementationConstants($method, $expected, $args = [[]])
     {
-        $this->assertEquals($expected, $this->subject->$method(...$args));
+        $this->assertSame(
+            $this->normalizeString($expected),
+            $this->normalizeString($this->subject->$method(...$args))
+        );
     }
 
     public function constantsToTest()
@@ -177,6 +180,21 @@ class SpannerPlatformTest extends TestCase
                 'CREATE INDEX index1 ON table1 (column1)',
             ],
             $this->invokePrivateMethod($this->subject, '_getCreateTableSQL', [$tableName, $columns, $options])
+        );
+    }
+
+    private function normalizeString(string $string): string
+    {
+        return trim(
+            str_replace(
+                PHP_EOL,
+                '',
+                preg_replace(
+                    '/\s+/',
+                    ' ',
+                    $string
+                )
+            )
         );
     }
 }

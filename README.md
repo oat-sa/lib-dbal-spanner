@@ -27,7 +27,7 @@ So if you plan to run the integration tests several times within an hour, it's c
 
 ### Instance and database creation
 
-Give the name of the instance an database you want to create in the according fields in `tests/spanner.php`:
+Give the name of the instance an database you want to create in the according fields in `tests/spanner-instance.php`:
 
 ```
 $instanceName = 'php-dbal-tests-instance';

@@ -31,14 +31,14 @@ use PHPUnit\Framework\TestCase;
 
 class StatementsCrudTest extends TestCase
 {
-    protected const INSTANCE_NAME = 'tao-curgen-inst';
-    protected const DATABASE_NAME = 'julien-dbal-driver-tests';
+    private const INSTANCE_NAME = 'tao-curgen-inst';
+    private const DATABASE_NAME = 'julien-dbal-driver-tests';
 
     /** @var SpannerConnection */
-    protected $connection;
+    private $connection;
 
     /** @var int */
-    protected $now = 1234567890;
+    private $now = 1234567890;
 
     public function setUp(): void
     {
