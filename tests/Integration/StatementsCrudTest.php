@@ -15,24 +15,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
- * Copyright (c) 2019 (original work) Open Assessment Technologies SA;
+ * Copyright (c) 2020 (original work) Open Assessment Technologies SA;
  */
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Doctrine\DBAL\DBALException;
-use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Google\Cloud\Core\Exception\BadRequestException;
 use OAT\Library\DBALSpanner\SpannerConnection;
-use OAT\Library\DBALSpanner\SpannerDriver;
-use OAT\Library\DBALSpanner\SpannerPlatform;
+use OAT\Library\DBALSpanner\Tests\Integration\_helpers\ConfigurationTrait;
+use OAT\Library\DBALSpanner\Tests\Integration\_helpers\ConnectionTrait;
 use PHPUnit\Framework\TestCase;
 
 class StatementsCrudTest extends TestCase
 {
-    private const INSTANCE_NAME = 'tao-curgen-inst';
-    private const DATABASE_NAME = 'julien-dbal-driver-tests';
+    use ConfigurationTrait;
+    use ConnectionTrait;
 
     /** @var SpannerConnection */
     private $connection;
@@ -42,45 +41,33 @@ class StatementsCrudTest extends TestCase
 
     public function setUp(): void
     {
-        $connectionParams = [
-            'dbname' => self::DATABASE_NAME,
-            'instance' => self::INSTANCE_NAME,
-            'driverClass' => SpannerDriver::class,
-            'platform' => new SpannerPlatform(),
-        ];
+        $this->connection = $this->getConnection();
 
-        try {
-            $this->connection = DriverManager::getConnection($connectionParams);
-            $this->connection->connect();
-        } catch (\Exception $exception) {
-            echo 'Unable to connect to Spanner instance. Did you forget to start an instance and setup a database prior to running the integration tests?';
-            $this->markTestSkipped();
-        }
-    }
-
-    /**
-     * @throws DBALException
-     * @throws BadRequestException
-     */
-    public function testEmptyTableOnStart()
-    {
-        $sql = 'SELECT * FROM statements';
-        $this->assertEquals([], $this->fetchAllResults($sql));
+        $this->setUpDatabase();
     }
 
     /**
      * @depends testEmptyTableOnStart
+     *
      * @throws DBALException
      * @throws BadRequestException
      */
     public function testCreateAndSimpleSelect()
     {
         for ($i = 1; $i <= 5; $i++) {
-            // Insert statement returns the number of modified rows.
-            $this->assertEquals(1, $this->connection->insert(
-                'statements',
-                $this->generateTripleRecord('subject' . $i, 'predicate' . $i, 'object' . $i, 1, $this->now)
-            ));
+            $this->assertEquals(
+                1,
+                $this->connection->insert(
+                    'statements',
+                    $this->generateTripleRecord(
+                        'subject' . $i,
+                        'predicate' . $i,
+                        'object' . $i,
+                        1,
+                        $this->now
+                    )
+                )
+            );
         }
 
         $expected = [
@@ -92,11 +79,13 @@ class StatementsCrudTest extends TestCase
         ];
 
         $sql = 'SELECT * FROM statements';
+
         $this->assertEquals($expected, $this->fetchAllResults($sql));
     }
 
     /**
      * @depends testCreateAndSimpleSelect
+     *
      * @throws DBALException
      * @throws BadRequestException
      */
@@ -111,11 +100,13 @@ class StatementsCrudTest extends TestCase
         ];
 
         $sql = 'SELECT * FROM statements ORDER BY subject DESC';
+
         $this->assertEquals($expected, $this->fetchAllResults($sql));
     }
 
     /**
      * @depends testReadWithoutParameter
+     *
      * @throws DBALException
      * @throws BadRequestException
      */
@@ -132,6 +123,7 @@ class StatementsCrudTest extends TestCase
         ];
 
         $sql = 'SELECT * FROM statements;';
+
         $this->assertEquals($expected, $this->fetchAllResults($sql));
     }
 
@@ -139,19 +131,15 @@ class StatementsCrudTest extends TestCase
      * @depends      testUpdateAndQueryWithSemiColon
      * @dataProvider parameterQueriesToTest
      *
-     * @param array  $expected
-     * @param string $sql
-     * @param array  $parameters
-     *
      * @throws DBALException
      * @throws BadRequestException
      */
-    public function testQueryWithParameters(array $expected, string $sql, array $parameters = [])
+    public function testQueryWithParameters(array $expected, string $sql, array $parameters = []): void
     {
         $this->assertEquals($expected, $this->fetchAllResults($sql, $parameters));
     }
 
-    public function parameterQueriesToTest()
+    public function parameterQueriesToTest(): array
     {
         return [
             [
@@ -184,19 +172,20 @@ class StatementsCrudTest extends TestCase
      *
      * @param string $exceptionMessage
      * @param string $sql
-     * @param array  $parameters
+     * @param array $parameters
      *
      * @throws DBALException
      * @throws BadRequestException
      */
-    public function testQueryWithWrongParametersThrowsException(string $exceptionMessage, string $sql, array $parameters = [])
+    public function testQueryWithWrongParametersThrowsException(string $exceptionMessage, string $sql, array $parameters = []): void
     {
         $this->expectException(DBALException::class);
         $this->expectExceptionMessage($exceptionMessage);
+
         $this->fetchAllResults($sql, $parameters);
     }
 
-    public function wrongParameterQueriesToTest()
+    public function wrongParameterQueriesToTest(): array
     {
         return [
             [
@@ -224,9 +213,8 @@ class StatementsCrudTest extends TestCase
      * @throws InvalidArgumentException
      * @throws BadRequestException
      */
-    public function testDelete()
+    public function testDelete(): void
     {
-        // Delete statements return the number of modified rows.
         $this->assertEquals(1, $this->connection->delete('statements', ['subject' => 'subject1']));
         $this->assertEquals(0, $this->connection->delete('statements', ['author' => 'Robert Desnos']));
         $this->assertEquals(4, $this->connection->delete('statements', ['modelid' => 1]));
@@ -235,23 +223,13 @@ class StatementsCrudTest extends TestCase
         $this->assertEquals([], $this->fetchAllResults($sql));
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    /// Helpers
-
     /**
-     * Returns all the results of the statement as an array
-     *
-     * @param string $sql
-     * @param array  $parameters
-     *
-     * @return array
      * @throws DBALException
      * @throws InvalidArgumentException
      * @throws BadRequestException
      */
-    public function fetchAllResults(string $sql, array $parameters = []): array
+    private function fetchAllResults(string $sql, array $parameters = []): array
     {
-        // Uses two different methods for the sake of testing although all could be done with prepare and execute.
         if (count($parameters)) {
             $statement = $this->connection->prepare($sql);
             $statement->execute($parameters);
@@ -261,6 +239,7 @@ class StatementsCrudTest extends TestCase
 
         $results = [];
         $rows = $statement->fetchAll();
+
         if ($rows) {
             foreach ($rows as $row) {
                 $results[] = $row;
@@ -269,28 +248,28 @@ class StatementsCrudTest extends TestCase
 
         return $results;
     }
-    
-    /**
-     * Generates a convenient triple for the sake of simplification.
-     *
-     * @param string $s
-     * @param string $p
-     * @param string $o
-     * @param int    $model
-     * @param int    $time
-     *
-     * @return array
-     */
-    public function generateTripleRecord(string $s, string $p, string $o, int $model, int $time)
+
+    private function generateTripleRecord(
+        string $subject,
+        string $predicate,
+        string $object,
+        int $model,
+        int $time
+    ): array
     {
         return [
             'modelid' => $model,
-            'subject' => $s,
-            'predicate' => $p,
-            'object' => $o,
+            'subject' => $subject,
+            'predicate' => $predicate,
+            'object' => $object,
             'l_language' => 'en',
             'author' => 'an author',
             'epoch' => (string)$time,
         ];
+    }
+
+    private function setUpDatabase(): void
+    {
+        $this->connection->exec('DELETE FROM statements');
     }
 }
