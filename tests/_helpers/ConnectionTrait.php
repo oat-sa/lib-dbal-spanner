@@ -23,6 +23,7 @@ namespace OAT\Library\DBALSpanner\Tests\_helpers;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\DriverManager;
+use OAT\Library\DBALSpanner\SpannerConnection;
 use OAT\Library\DBALSpanner\SpannerConnectionWrapper;
 use OAT\Library\DBALSpanner\SpannerDriver;
 use OAT\Library\DBALSpanner\SpannerPlatform;
@@ -30,7 +31,7 @@ use OAT\Library\DBALSpanner\SpannerPlatform;
 trait ConnectionTrait
 {
     /**
-     * @var Connection
+     * @var SpannerConnection|Connection
      */
     private $connection;
 

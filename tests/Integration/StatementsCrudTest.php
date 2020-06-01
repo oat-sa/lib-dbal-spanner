@@ -26,7 +26,6 @@ use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Exception;
 use Google\Cloud\Spanner\Timestamp;
-use OAT\Library\DBALSpanner\SpannerConnection;
 use OAT\Library\DBALSpanner\Tests\_helpers\ConfigurationTrait;
 use OAT\Library\DBALSpanner\Tests\_helpers\ConnectionTrait;
 use PHPUnit\Framework\TestCase;
@@ -37,19 +36,9 @@ class StatementsCrudTest extends TestCase
     use ConnectionTrait;
 
     /**
-     * @var SpannerConnection
-     */
-    private $connection;
-
-    /**
      * @var int
      */
     private $now = 1234567890;
-
-    public function setUp(): void
-    {
-        $this->connection = $this->getConnection();
-    }
 
     /**
      * @throws DBALException
@@ -61,7 +50,7 @@ class StatementsCrudTest extends TestCase
         for ($i = 1; $i <= 5; $i++) {
             $this->assertInstanceOf(
                 Timestamp::class,
-                $this->connection->insert(
+                $this->getConnection()->insert(
                     'statements',
                     $this->generateTripleRecord(
                         'subject' . $i,
@@ -115,7 +104,7 @@ class StatementsCrudTest extends TestCase
      */
     public function testUpdateAndQueryWithSemiColon()
     {
-        $this->assertEquals(1, $this->connection->update('statements', ['modelid' => 2], ['subject' => 'subject1']));
+        $this->assertEquals(1, $this->getConnection()->update('statements', ['modelid' => 2], ['subject' => 'subject1']));
 
         $expected = [
             $this->generateTripleRecord('subject1', 'predicate1', 'object1', 2, $this->now),
@@ -215,9 +204,9 @@ class StatementsCrudTest extends TestCase
      */
     public function testDelete(): void
     {
-        $this->assertEquals(1, $this->connection->delete('statements', ['subject' => 'subject1']));
-        $this->assertEquals(0, $this->connection->delete('statements', ['author' => 'Robert Desnos']));
-        $this->assertEquals(4, $this->connection->delete('statements', ['modelid' => 1]));
+        $this->assertEquals(1, $this->getConnection()->delete('statements', ['subject' => 'subject1']));
+        $this->assertEquals(0, $this->getConnection()->delete('statements', ['author' => 'Robert Desnos']));
+        $this->assertEquals(4, $this->getConnection()->delete('statements', ['modelid' => 1]));
 
         $sql = 'SELECT * FROM statements';
 
@@ -230,10 +219,10 @@ class StatementsCrudTest extends TestCase
     private function fetchAllResults(string $sql, array $parameters = []): array
     {
         if (count($parameters)) {
-            $statement = $this->connection->prepare($sql);
+            $statement = $this->getConnection()->prepare($sql);
             $statement->execute($parameters);
         } else {
-            $statement = $this->connection->query($sql);
+            $statement = $this->getConnection()->query($sql);
         }
 
         $results = [];
@@ -268,6 +257,6 @@ class StatementsCrudTest extends TestCase
 
     private function setUpDatabase(): void
     {
-        $this->connection->exec('DELETE FROM statements WHERE modelid > 0');
+        $this->getConnection()->exec('DELETE FROM statements WHERE modelid > 0');
     }
 }
