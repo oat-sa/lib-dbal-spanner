@@ -18,7 +18,7 @@
  * Copyright (c) 2020 (original work) Open Assessment Technologies SA;
  */
 
-namespace OAT\Library\DBALSpanner\Tests\Integration\_helpers;
+namespace OAT\Library\DBALSpanner\Tests\_helpers;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
@@ -29,7 +29,9 @@ use OAT\Library\DBALSpanner\SpannerPlatform;
 
 trait ConnectionTrait
 {
-    /** @var Connection */
+    /**
+     * @var Connection
+     */
     private $connection;
 
     /**

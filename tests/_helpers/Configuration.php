@@ -18,19 +18,22 @@
  * Copyright (c) 2020 (original work) Open Assessment Technologies SA;
  */
 
-namespace OAT\Library\DBALSpanner\Tests\Integration\_helpers;
+namespace OAT\Library\DBALSpanner\Tests\_helpers;
 
 use InvalidArgumentException;
 
 class Configuration
 {
-    private const INI_FILE = __DIR__ . DIRECTORY_SEPARATOR . 'env.ini';
+    private const INI_FILE = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'env.ini';
 
     public const CONFIG_INSTANCE_NAME = 'instance_name';
     public const CONFIG_DATABASE_NAME = 'database_name';
-    public const CONFIG_TRANSACTIONAL_TABLE_NAME = 'transactional_table_name';
+    public const CONFIG_KEY_FILE_PATH = 'key_file_path';
+    public const CONFIG_INSTANCE_REGION = 'instance_region';
 
-    /** @var array */
+    /**
+     * @var array
+     */
     public $config = [];
 
     public function __construct()

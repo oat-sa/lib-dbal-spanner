@@ -18,11 +18,13 @@
  * Copyright (c) 2020 (original work) Open Assessment Technologies SA;
  */
 
-namespace OAT\Library\DBALSpanner\Tests\Integration\_helpers;
+namespace OAT\Library\DBALSpanner\Tests\_helpers;
 
 trait ConfigurationTrait
 {
-    /** @var Configuration */
+    /**
+     * @var Configuration
+     */
     public $configuration;
 
     /**
