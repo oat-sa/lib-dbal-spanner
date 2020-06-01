@@ -126,8 +126,10 @@ class SpannerDriverTest extends TestCase
     {
         $this->expectException(DBALException::class);
         $this->expectExceptionMessage('Can not run transaction without connecting first.');
-        $this->subject->transactional(function () {
-        });
+        $this->subject->transactional(
+            function () {
+            }
+        );
     }
 
     public function testSelectDatabaseNotFoundWithException()

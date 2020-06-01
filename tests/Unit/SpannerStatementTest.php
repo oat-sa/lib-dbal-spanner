@@ -203,11 +203,13 @@ class SpannerStatementTest extends TestCase
         $transaction->expects($this->once())->method('commit');
 
         $this->database->method('runTransaction')
-            ->with($this->callback(
-                function ($closure) use ($transaction) {
-                    return $closure($transaction);
-                }
-            ))
+            ->with(
+                $this->callback(
+                    function ($closure) use ($transaction) {
+                        return $closure($transaction);
+                    }
+                )
+            )
             ->willReturn(true);
 
         $subject = new SpannerStatement($this->database, $originalSql, $this->parameterTranslator);
