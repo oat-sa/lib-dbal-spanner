@@ -146,7 +146,7 @@ class SpannerConnection implements Connection
      * @param string $tableExpression
      * @param array  $data
      *
-     * @return Timestamp|int
+     * @return Timestamp
      */
     public function insert($tableExpression, array $data)
     {
