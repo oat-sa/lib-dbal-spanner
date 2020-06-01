@@ -20,7 +20,7 @@
 
 declare(strict_types=1);
 
-namespace OAT\Library\DBALSpanner\Tests\Integration;
+namespace OAT\Library\DBALSpanner\Tests\_helpers;
 
 use Psr\Log\AbstractLogger;
 

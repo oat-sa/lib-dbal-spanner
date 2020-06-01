@@ -15,12 +15,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
- * Copyright (c) 2019 (original work) Open Assessment Technologies SA;
+ * Copyright (c) 2020 (original work) Open Assessment Technologies SA;
  */
 
 declare(strict_types=1);
 
-namespace OAT\Library\DBALSpanner\Tests\Integration;
+namespace OAT\Library\DBALSpanner\Tests\_helpers;
 
 use Google\Cloud\Core\Exception\GoogleException;
 use Google\Cloud\Spanner\Database;
@@ -32,19 +32,21 @@ use Psr\Log\LoggerAwareTrait;
 class SpannerDatabaseInstanceManager
 {
     use LoggerAwareTrait;
+    use ConfigurationTrait;
 
-    private const KEY_FILE_ENV_VARIABLE = 'GOOGLE_APPLICATION_CREDENTIALS';
-    private const CONFIGURATION_NAME = 'regional-europe-west1';
-
-    /** @var string */
+    /**
+     * @var string
+     */
     private $projectName;
 
-    /** @var SpannerClient */
+    /**
+     * @var SpannerClient
+     */
     private $client;
 
     public function __construct()
     {
-        $keyFile = json_decode(file_get_contents(getenv(self::KEY_FILE_ENV_VARIABLE)), true);
+        $keyFile = json_decode(file_get_contents($this->getConfiguration(Configuration::CONFIG_KEY_FILE_PATH)), true);
         $this->projectName = $keyFile['project_id'];
 
         try {
@@ -57,6 +59,7 @@ class SpannerDatabaseInstanceManager
     public function listInstances(): array
     {
         $instances = [];
+
         foreach ($this->client->instances() as $instance) {
             if ($instance instanceof Instance) {
                 $instances[] = basename($instance->name());
@@ -66,8 +69,10 @@ class SpannerDatabaseInstanceManager
         return $instances;
     }
 
-    public function createInstance(string $instanceName, string $configurationName = self::CONFIGURATION_NAME)
+    public function createInstance(string $instanceName, string $configurationName = null): Instance
     {
+        $configurationName = $configurationName ?? $this->getConfiguration(Configuration::CONFIG_INSTANCE_REGION);
+
         if (!in_array($instanceName, $this->listInstances())) {
             $this->logger->info(sprintf("Creating instance '%s' on project '%s'..." . PHP_EOL, $instanceName, $this->projectName));
             $this->client->createInstance($this->client->instanceConfiguration($configurationName), $instanceName);
@@ -80,10 +85,12 @@ class SpannerDatabaseInstanceManager
     {
         if (!in_array($instanceName, $this->listInstances())) {
             $this->logger->info(sprintf("Instance '%s' does not exist on project '%s'." . PHP_EOL, $instanceName, $this->projectName));
+
             return false;
         }
 
         $this->logger->info(sprintf("Deleting instance '%s' on project '%s'..." . PHP_EOL, $instanceName, $this->projectName));
+
         $instance = $this->getInstance($instanceName);
         $instance->delete();
 
@@ -98,6 +105,7 @@ class SpannerDatabaseInstanceManager
     public function listDatabases(string $instanceName): array
     {
         $databases = [];
+
         foreach ($this->getInstance($instanceName)->databases() as $database) {
             if ($database instanceof Database) {
                 $databases[] = basename($database->name());
@@ -107,14 +115,25 @@ class SpannerDatabaseInstanceManager
         return $databases;
     }
 
-    public function createDatabase(string $instanceName, string $databaseName, array $statements = [])
+    public function createDatabase(string $instanceName, string $databaseName, array $statements = []): void
     {
         $database = $this->getInstance($instanceName)->database($databaseName);
+
         if (!$database->exists()) {
             $this->logger->info(sprintf("Creating database '%s' on instance '%s'..." . PHP_EOL, $databaseName, $instanceName));
+
             $operation = $database->create(['statements' => $statements]);
             $operation->pollUntilComplete();
         }
+    }
+
+    public function createTables(string $instanceName, string $databaseName, array $statements = []): void
+    {
+        $database = $this->getInstance($instanceName)->database($databaseName);
+
+        $operation = $database->updateDdlBatch($statements);
+
+        $operation->pollUntilComplete();
     }
 
     public function getResourcesStatus(string $instanceName): string
