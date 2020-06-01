@@ -18,6 +18,8 @@
  * Copyright (c) 2019 (original work) Open Assessment Technologies SA;
  */
 
+declare(strict_types=1);
+
 namespace OAT\Library\DBALSpanner\Tests\Integration;
 
 use Doctrine\DBAL\Connection;
@@ -25,8 +27,8 @@ use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Google\Cloud\Core\Exception\BadRequestException;
 use Google\Cloud\Spanner\Transaction;
-use OAT\Library\DBALSpanner\Tests\Integration\_helpers\ConfigurationTrait;
-use OAT\Library\DBALSpanner\Tests\Integration\_helpers\ConnectionTrait;
+use OAT\Library\DBALSpanner\Tests\_helpers\ConfigurationTrait;
+use OAT\Library\DBALSpanner\Tests\_helpers\ConnectionTrait;
 
 class TransactionalTest
 {
@@ -34,6 +36,11 @@ class TransactionalTest
     use ConnectionTrait;
 
     public const TABLE_NAME = 'transactional_test';
+
+    /**
+     * @var array
+     */
+    public $failures = [];
 
     public function prepare()
     {

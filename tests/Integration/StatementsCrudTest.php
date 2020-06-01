@@ -18,14 +18,17 @@
  * Copyright (c) 2020 (original work) Open Assessment Technologies SA;
  */
 
-require_once __DIR__ . '/../../vendor/autoload.php';
+declare(strict_types=1);
+
+namespace OAT\Library\DBALSpanner\Tests\Integration;
 
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
-use Google\Cloud\Core\Exception\BadRequestException;
+use Exception;
+use Google\Cloud\Spanner\Timestamp;
 use OAT\Library\DBALSpanner\SpannerConnection;
-use OAT\Library\DBALSpanner\Tests\Integration\_helpers\ConfigurationTrait;
-use OAT\Library\DBALSpanner\Tests\Integration\_helpers\ConnectionTrait;
+use OAT\Library\DBALSpanner\Tests\_helpers\ConfigurationTrait;
+use OAT\Library\DBALSpanner\Tests\_helpers\ConnectionTrait;
 use PHPUnit\Framework\TestCase;
 
 class StatementsCrudTest extends TestCase
@@ -33,30 +36,31 @@ class StatementsCrudTest extends TestCase
     use ConfigurationTrait;
     use ConnectionTrait;
 
-    /** @var SpannerConnection */
+    /**
+     * @var SpannerConnection
+     */
     private $connection;
 
-    /** @var int */
+    /**
+     * @var int
+     */
     private $now = 1234567890;
 
     public function setUp(): void
     {
         $this->connection = $this->getConnection();
-
-        $this->setUpDatabase();
     }
 
     /**
-     * @depends testEmptyTableOnStart
-     *
      * @throws DBALException
-     * @throws BadRequestException
      */
     public function testCreateAndSimpleSelect()
     {
+        $this->setUpDatabase();
+
         for ($i = 1; $i <= 5; $i++) {
-            $this->assertEquals(
-                1,
+            $this->assertInstanceOf(
+                Timestamp::class,
                 $this->connection->insert(
                     'statements',
                     $this->generateTripleRecord(
@@ -78,16 +82,15 @@ class StatementsCrudTest extends TestCase
             $this->generateTripleRecord('subject5', 'predicate5', 'object5', 1, $this->now),
         ];
 
-        $sql = 'SELECT * FROM statements';
+        $results = $this->fetchAllResults('SELECT * FROM statements');
 
-        $this->assertEquals($expected, $this->fetchAllResults($sql));
+        $this->assertEquals($expected, $results);
     }
 
     /**
      * @depends testCreateAndSimpleSelect
      *
-     * @throws DBALException
-     * @throws BadRequestException
+     * @throws Exception
      */
     public function testReadWithoutParameter()
     {
@@ -107,8 +110,8 @@ class StatementsCrudTest extends TestCase
     /**
      * @depends testReadWithoutParameter
      *
+     * @throws InvalidArgumentException
      * @throws DBALException
-     * @throws BadRequestException
      */
     public function testUpdateAndQueryWithSemiColon()
     {
@@ -132,7 +135,6 @@ class StatementsCrudTest extends TestCase
      * @dataProvider parameterQueriesToTest
      *
      * @throws DBALException
-     * @throws BadRequestException
      */
     public function testQueryWithParameters(array $expected, string $sql, array $parameters = []): void
     {
@@ -170,15 +172,13 @@ class StatementsCrudTest extends TestCase
      * @depends      testUpdateAndQueryWithSemiColon
      * @dataProvider wrongParameterQueriesToTest
      *
-     * @param string $exceptionMessage
-     * @param string $sql
-     * @param array $parameters
-     *
      * @throws DBALException
-     * @throws BadRequestException
      */
     public function testQueryWithWrongParametersThrowsException(string $exceptionMessage, string $sql, array $parameters = []): void
     {
+        // @TODO @FIXME Why are we testing Doctrine? IMO this test should be removed
+        // Those error messages can vary and are third-part related
+
         $this->expectException(DBALException::class);
         $this->expectExceptionMessage($exceptionMessage);
 
@@ -189,17 +189,17 @@ class StatementsCrudTest extends TestCase
     {
         return [
             [
-                "An exception occurred while executing 'SELECT * FROM statements WHERE modelid = ? AND subject = ?' with params [2]:\n\nExpected exactly 2 parameter(s), 1 found.",
+                "Expected exactly 2 parameter(s), 1 found.",
                 'SELECT * FROM statements WHERE modelid = ? AND subject = ?',
                 [2],
             ],
             [
-                "An exception occurred while executing 'SELECT * FROM statements WHERE modelid = ? AND subject = ?' with params [2, \"foo\", \"bar\"]:\n\nExpected exactly 2 parameter(s), 3 found.",
+                "Expected exactly 2 parameter(s), 3 found.",
                 'SELECT * FROM statements WHERE modelid = ? AND subject = ?',
                 [2, 'foo', 'bar'],
             ],
             [
-                "An exception occurred while executing 'SELECT * FROM statements WHERE modelid = :model AND subject = ?':\n\nCan not use both named and positional parameters.",
+                "Can not use both named and positional parameters.",
                 'SELECT * FROM statements WHERE modelid = :model AND subject = ?',
                 [2],
             ],
@@ -209,9 +209,9 @@ class StatementsCrudTest extends TestCase
     /**
      * @depends testQueryWithParameters
      * @depends testQueryWithWrongParametersThrowsException
+     *
      * @throws DBALException
      * @throws InvalidArgumentException
-     * @throws BadRequestException
      */
     public function testDelete(): void
     {
@@ -220,13 +220,12 @@ class StatementsCrudTest extends TestCase
         $this->assertEquals(4, $this->connection->delete('statements', ['modelid' => 1]));
 
         $sql = 'SELECT * FROM statements';
+
         $this->assertEquals([], $this->fetchAllResults($sql));
     }
 
     /**
      * @throws DBALException
-     * @throws InvalidArgumentException
-     * @throws BadRequestException
      */
     private function fetchAllResults(string $sql, array $parameters = []): array
     {
@@ -255,8 +254,7 @@ class StatementsCrudTest extends TestCase
         string $object,
         int $model,
         int $time
-    ): array
-    {
+    ): array {
         return [
             'modelid' => $model,
             'subject' => $subject,
@@ -270,6 +268,6 @@ class StatementsCrudTest extends TestCase
 
     private function setUpDatabase(): void
     {
-        $this->connection->exec('DELETE FROM statements');
+        $this->connection->exec('DELETE FROM statements WHERE modelid > 0');
     }
 }

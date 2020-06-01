@@ -22,20 +22,27 @@ namespace OAT\Library\DBALSpanner\Tests\Integration\SpannerClient;
 
 use Google\Cloud\Spanner\SpannerClient;
 use OAT\Library\DBALSpanner\SpannerClient\SpannerClientFactory;
+use OAT\Library\DBALSpanner\Tests\_helpers\Configuration;
+use OAT\Library\DBALSpanner\Tests\_helpers\ConfigurationTrait;
 use phpmock\Mock;
 use phpmock\MockBuilder;
 use PHPUnit\Framework\TestCase;
 
 class SpannerClientFactoryTest extends TestCase
 {
+    use ConfigurationTrait;
+
     public function testGetInstanceWithoutGrpcInstalledThrowsException()
     {
-        $keyFileName = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '../_resources/key_file.json';
-
-        $this->MockFunction('OAT\Library\DBALSpanner\SpannerClient', "getenv", $keyFileName);
+        $this->MockFunction(
+            'OAT\Library\DBALSpanner\SpannerClient',
+            "getenv",
+            $this->getConfiguration(Configuration::CONFIG_KEY_FILE_PATH)
+        );
 
         $subject = new SpannerClientFactory();
         $spannerClient = $subject->create();
+
         $this->assertInstanceOf(SpannerClient::class, $spannerClient);
     }
 
@@ -43,9 +50,9 @@ class SpannerClientFactoryTest extends TestCase
      * Mocks general scope's time function.
      * If $assertParameters is provided, asserts that the parameters received are matching.
      *
-     * @param string $namespace
-     * @param string $functionName
-     * @param mixed  $value
+     * @param string     $namespace
+     * @param string     $functionName
+     * @param mixed      $value
      * @param array|null $assertParameters
      *
      * @return Mock
