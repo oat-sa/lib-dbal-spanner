@@ -25,33 +25,36 @@ Be careful that running the above command without the `testsuite` option will ru
 **/!\ Beware !** though that the billing is based on a "every started hour is due" policy for each instance. This means that an instance created and deleted within even a second will be billed for 1 hour.
 So if you plan to run the integration tests several times within an hour, it's cheaper to setup the instance, then run the tests as many times you want on the same instance, and then delete the instance at the end, else each instance would be billed for one hour.
 
+### Setup your environment
+
+Copy [/tests/env.ini.dist](tests/env.ini.dist) to `tests/env.ini` and provide your test environment data.
+
 ### Instance and database creation
 
-Give the name of the instance an database you want to create in the according fields in `tests/spanner-instance.php`:
+Use the script [spanner-instance.php](tests/scripts/spanner-instance.php) to prepare your environment:
+
+#### Create an instance and database(s):
 
 ```
-$instanceName = 'php-dbal-tests-instance';
-$databaseName = 'spanner-test-database';
+php tests/scripts/spanner-instance.php create
 ```
 
-3 commands are provided to manually manage a Spanner instance and create a first database schema (schema management by DBAL is outside of the scope of this prototype):
-
-Create an instance and database(s):
+#### Delete an instance and all database(s):
 
 ```
-php tests/Integration/spanner-instance.php start
+php tests/Integration/spanner-instance.php delete
 ```
 
-Displays existing instance and database(s):
+#### Create database tables for existing database:
 
 ```
-php tests/Integration/spanner-instance.php list
+php tests/Integration/spanner-instance.php migrate
 ```
 
-Delete an instance and all database(s):
+#### Displays existing instance and database(s):
 
 ```
-php tests/Integration/spanner-instance.php stop
+php tests/scripts/spanner-instance.php status
 ```
 
 ### Running the tests
@@ -69,3 +72,22 @@ Of course, you can also run all the tests at once, using:
 ```
 
 Again, don't forget to delete your instance afterwards.
+
+## Standards
+
+This library follows PSR-12, please make sure your code is following the standards 
+for both tests and production code:
+
+Auto-fixing (does not cover all scenarios):
+
+```shell script
+bin/phpcbf --standard=PSR12 src
+bin/phpcbf --standard=PSR12 tests
+``` 
+
+Check errors:
+
+```shell script
+bin/phpcs --standard=PSR12 src
+bin/phpcs --standard=PSR12 tests
+```
