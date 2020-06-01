@@ -18,6 +18,8 @@
  * Copyright (c) 2019 (original work) Open Assessment Technologies SA;
  */
 
+declare(strict_types=1);
+
 use OAT\Library\DBALSpanner\Tests\Integration\TransactionalTest;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
