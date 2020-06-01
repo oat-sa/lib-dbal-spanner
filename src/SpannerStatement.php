@@ -379,7 +379,8 @@ class SpannerStatement implements IteratorAggregate, Statement
 
     public function getIterator()
     {
-        throw new Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
+        //@TODO @FIXME Need to implement iterator logic
+        return new SpannerIterator();
     }
 
     protected function loadRows($fetchMode = null)
