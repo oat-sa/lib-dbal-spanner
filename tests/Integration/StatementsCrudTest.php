@@ -104,7 +104,10 @@ class StatementsCrudTest extends TestCase
      */
     public function testUpdateAndQueryWithSemiColon()
     {
-        $this->assertEquals(1, $this->getConnection()->update('statements', ['modelid' => 2], ['subject' => 'subject1']));
+        $this->assertEquals(
+            1,
+            $this->getConnection()->update('statements', ['modelid' => 2], ['subject' => 'subject1'])
+        );
 
         $expected = [
             $this->generateTripleRecord('subject1', 'predicate1', 'object1', 2, $this->now),
@@ -163,8 +166,11 @@ class StatementsCrudTest extends TestCase
      *
      * @throws DBALException
      */
-    public function testQueryWithWrongParametersThrowsException(string $exceptionMessage, string $sql, array $parameters = []): void
-    {
+    public function testQueryWithWrongParametersThrowsException(
+        string $exceptionMessage,
+        string $sql,
+        array $parameters = []
+    ): void {
         // @TODO @FIXME Why are we testing Doctrine? IMO this test should be removed
         // Those error messages can vary and are third-part related
 

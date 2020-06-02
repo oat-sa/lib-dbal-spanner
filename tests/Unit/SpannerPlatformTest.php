@@ -56,7 +56,14 @@ class SpannerPlatformTest extends TestCase
             ],
             [
                 'getListTableColumnsSQL',
-                'SELECT column_name AS Field, spanner_type AS Type, is_nullable AS `Null`, "" AS `Key`, "" AS `Default`, "" AS Extra, "" AS Comment
+                'SELECT 
+        column_name AS Field, 
+        spanner_type AS Type, 
+        is_nullable AS `Null`, 
+        "" AS `Key`, 
+        "" AS `Default`, 
+        "" AS Extra, 
+        "" AS Comment
       FROM information_schema.columns
       WHERE table_name = "' . $table . '"
       AND table_catalog = "" 
@@ -67,7 +74,14 @@ class SpannerPlatformTest extends TestCase
 
             [
                 'getListTableColumnsSQL',
-                'SELECT column_name AS Field, spanner_type AS Type, is_nullable AS `Null`, "" AS `Key`, "" AS `Default`, "" AS Extra, "" AS Comment
+                'SELECT 
+        column_name AS Field, 
+        spanner_type AS Type, 
+        is_nullable AS `Null`, 
+        "" AS `Key`, 
+        "" AS `Default`, 
+        "" AS Extra, 
+        "" AS Comment
       FROM information_schema.columns
       WHERE table_name = "' . $table . '"
       AND table_catalog = "" 
@@ -77,7 +91,12 @@ class SpannerPlatformTest extends TestCase
             ],
             [
                 'getListTableIndexesSQL',
-                'SELECT is_unique AS Non_Unique, i.index_name AS Key_name, column_name AS Column_Name, "" AS Sub_Part, i.index_type AS Index_Type
+                'SELECT 
+        is_unique AS Non_Unique, 
+        i.index_name AS Key_name, 
+        column_name AS Column_Name, 
+        "" AS Sub_Part, 
+        i.index_type AS Index_Type
       FROM information_schema.indexes i
       INNER JOIN information_schema.index_columns ic
               ON i.table_name = ic.table_name
@@ -107,7 +126,15 @@ class SpannerPlatformTest extends TestCase
     {
         $this->assertEquals(
             'INT64',
-            $this->invokePrivateMethod($this->subject, '_getCommonIntegerTypeDeclarationSQL', [['autoincrement' => false]])
+            $this->invokePrivateMethod(
+                $this->subject,
+                '_getCommonIntegerTypeDeclarationSQL',
+                [
+                    [
+                        'autoincrement' => false,
+                    ]
+                ]
+            )
         );
     }
 
@@ -115,7 +142,15 @@ class SpannerPlatformTest extends TestCase
     {
         $this->expectException(DBALException::class);
         $this->expectExceptionMessage('AUTO_INCREMENT is not supported by GCP Spanner.');
-        $this->invokePrivateMethod($this->subject, '_getCommonIntegerTypeDeclarationSQL', [['autoincrement' => true]]);
+        $this->invokePrivateMethod(
+            $this->subject,
+            '_getCommonIntegerTypeDeclarationSQL',
+            [
+                [
+                    'autoincrement' => true
+                ]
+            ]
+        );
     }
 
     public function testInitializeDoctrineTypeMappings()
@@ -176,7 +211,7 @@ class SpannerPlatformTest extends TestCase
 
         $this->assertEquals(
             [
-                'CREATE TABLE ' . $tableName . ' (' . $column1 . ' ' . $columnDefinition . ') PRIMARY KEY (' . $primaryvalue . ')',
+                sprintf('CREATE TABLE %s (%s %s) PRIMARY KEY (%s)', $tableName, $column1, $columnDefinition, $primaryvalue),
                 'CREATE INDEX index1 ON table1 (column1)',
             ],
             $this->invokePrivateMethod($this->subject, '_getCreateTableSQL', [$tableName, $columns, $options])

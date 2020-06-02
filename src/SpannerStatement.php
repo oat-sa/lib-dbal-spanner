@@ -144,7 +144,8 @@ class SpannerStatement implements IteratorAggregate, Statement
     public function execute($params = null): bool
     {
         try {
-            [$parameters, $types] = $this->parameterTranslator->convertPositionalToNamed($this->boundValues, $params, $this->boundTypes);
+            [$parameters, $types] = $this->parameterTranslator
+                ->convertPositionalToNamed($this->boundValues, $params, $this->boundTypes);
         } catch (InvalidArgumentException $exception) {
             if ($this->logger) {
                 $this->logger->error(
@@ -169,8 +170,16 @@ class SpannerStatement implements IteratorAggregate, Statement
         try {
             return $this->database->runTransaction(
                 function (Transaction $t) use ($parameters, $types) {
-                    $this->affectedRows = $t->executeUpdate($this->sql, ['parameters' => $parameters, 'types' => $types]);
+                    $this->affectedRows = $t->executeUpdate(
+                        $this->sql,
+                        [
+                            'parameters' => $parameters,
+                            'types' => $types,
+                        ]
+                    );
+
                     $t->commit();
+
                     $this->result = null;
                     $this->rows = null;
 
@@ -262,7 +271,6 @@ class SpannerStatement implements IteratorAggregate, Statement
 
         $this->loadRows($fetchMode);
 
-        // Find the row offset.
         $this->offset = $this->findOffset($cursorOrientation, $cursorOffset);
 
         return $this->offset !== -1

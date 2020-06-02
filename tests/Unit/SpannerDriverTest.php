@@ -59,7 +59,10 @@ class SpannerDriverTest extends TestCase
     {
         $subject = new SpannerDriver();
         
-        $this->assertInstanceOf(SpannerClientFactory::class, $this->getPrivateProperty($subject, 'spannerClientFactory'));
+        $this->assertInstanceOf(
+            SpannerClientFactory::class,
+            $this->getPrivateProperty($subject, 'spannerClientFactory')
+        );
     }
     
     public function testConnect()
@@ -90,7 +93,10 @@ class SpannerDriverTest extends TestCase
 
     public function testGetSchemaManager()
     {
-        $this->assertInstanceOf(SpannerSchemaManager::class, $this->subject->getSchemaManager($this->createMock(Connection::class)));
+        $this->assertInstanceOf(
+            SpannerSchemaManager::class,
+            $this->subject->getSchemaManager($this->createMock(Connection::class))
+        );
     }
 
     public function testGetName()

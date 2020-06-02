@@ -34,7 +34,7 @@ class SpannerClientFactoryTest extends TestCase
 
     public function testGetInstanceWithoutGrpcInstalledThrowsException()
     {
-        $this->MockFunction(
+        $this->mockFunction(
             'OAT\Library\DBALSpanner\SpannerClient',
             "getenv",
             $this->getConfiguration(Configuration::CONFIG_KEY_FILE_PATH)
@@ -58,7 +58,7 @@ class SpannerClientFactoryTest extends TestCase
      * @return Mock
      * @throws \phpmock\MockEnabledException
      */
-    protected function MockFunction($namespace, $functionName, $value, $assertParameters = null)
+    protected function mockFunction($namespace, $functionName, $value, $assertParameters = null)
     {
         $builder = new MockBuilder();
         $builder->setNamespace($namespace)

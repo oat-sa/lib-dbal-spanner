@@ -74,7 +74,9 @@ class SpannerDatabaseInstanceManager
         $configurationName = $configurationName ?? $this->getConfiguration(Configuration::CONFIG_INSTANCE_REGION);
 
         if (!in_array($instanceName, $this->listInstances())) {
-            $this->logger->info(sprintf("Creating instance '%s' on project '%s'..." . PHP_EOL, $instanceName, $this->projectName));
+            $this->logger->info(
+                sprintf("Creating instance '%s' on project '%s'..." . PHP_EOL, $instanceName, $this->projectName)
+            );
             $this->client->createInstance($this->client->instanceConfiguration($configurationName), $instanceName);
         }
 
@@ -84,12 +86,24 @@ class SpannerDatabaseInstanceManager
     public function deleteInstance(string $instanceName): bool
     {
         if (!in_array($instanceName, $this->listInstances())) {
-            $this->logger->info(sprintf("Instance '%s' does not exist on project '%s'." . PHP_EOL, $instanceName, $this->projectName));
+            $this->logger->info(
+                sprintf(
+                    "Instance '%s' does not exist on project '%s'." . PHP_EOL,
+                    $instanceName,
+                    $this->projectName
+                )
+            );
 
             return false;
         }
 
-        $this->logger->info(sprintf("Deleting instance '%s' on project '%s'..." . PHP_EOL, $instanceName, $this->projectName));
+        $this->logger->info(
+            sprintf(
+                "Deleting instance '%s' on project '%s'..." . PHP_EOL,
+                $instanceName,
+                $this->projectName
+            )
+        );
 
         $instance = $this->getInstance($instanceName);
         $instance->delete();
@@ -120,7 +134,13 @@ class SpannerDatabaseInstanceManager
         $database = $this->getInstance($instanceName)->database($databaseName);
 
         if (!$database->exists()) {
-            $this->logger->info(sprintf("Creating database '%s' on instance '%s'..." . PHP_EOL, $databaseName, $instanceName));
+            $this->logger->info(
+                sprintf(
+                    "Creating database '%s' on instance '%s'..." . PHP_EOL,
+                    $databaseName,
+                    $instanceName
+                )
+            );
 
             $operation = $database->create(['statements' => $statements]);
             $operation->pollUntilComplete();

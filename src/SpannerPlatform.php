@@ -24,6 +24,7 @@ namespace OAT\Library\DBALSpanner;
 
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Exception;
 
 /**
  * The SpannerPlatform provides the behavior, features and SQL dialect of the Spanner database platform.
@@ -72,14 +73,22 @@ class SpannerPlatform extends AbstractPlatform
 
     public function getListTableIndexesSQL($table, $currentDatabase = null)
     {
-        return sprintf('SELECT is_unique AS Non_Unique, i.index_name AS Key_name, column_name AS Column_Name, "" AS Sub_Part, i.index_type AS Index_Type
-      FROM information_schema.indexes i
-      INNER JOIN information_schema.index_columns ic
-              ON i.table_name = ic.table_name
-      WHERE i.table_name = "%s"
-      AND i.table_catalog = "" 
-      AND i.table_schema = ""
-      ORDER BY ordinal_position', $table);
+        return sprintf(
+            'SELECT 
+            is_unique AS Non_Unique, 
+            i.index_name AS Key_name, 
+            column_name AS Column_Name, 
+            "" AS Sub_Part, 
+            i.index_type AS Index_Type
+        FROM information_schema.indexes i
+        INNER JOIN information_schema.index_columns ic
+            ON i.table_name = ic.table_name
+        WHERE i.table_name = "%s"
+            AND i.table_catalog = "" 
+            AND i.table_schema = ""
+        ORDER BY ordinal_position',
+            $table
+        );
     }
 
     public function supportsForeignKeyConstraints()
@@ -117,8 +126,13 @@ class SpannerPlatform extends AbstractPlatform
         return 'DATE';
     }
 
+    /**
+     * @inheritDoc
+     * @codingStandardsIgnoreStart
+     */
     protected function _getCommonIntegerTypeDeclarationSQL(array $columnDef)
     {
+        //@codingStandardsIgnoreEnd
         if (!empty($columnDef['autoincrement'])) {
             throw new DBALException('AUTO_INCREMENT is not supported by GCP Spanner.');
         }
@@ -164,7 +178,14 @@ class SpannerPlatform extends AbstractPlatform
 
     public function getTruncateTableSQL($tableName, $cascade = false)
     {
-        throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not yet implemented.' . "\n" . 'To implement it, please follow the guidelines here: https://stackoverflow.com/questions/43266590/does-cloud-spanner-support-a-truncate-table-command');
+        throw new Exception(
+            "\e[31m\e[1m" . __METHOD__ .
+            "\e[21m\e[0m" .
+            ' not yet implemented.' .
+            PHP_EOL .
+            'To implement it, please follow the guidelines here: ' .
+            'https://stackoverflow.com/questions/43266590/does-cloud-spanner-support-a-truncate-table-command'
+        );
     }
 
     protected function getReservedKeywordsClass()
@@ -188,10 +209,12 @@ class SpannerPlatform extends AbstractPlatform
     }
 
     /**
-     * {@inheritDoc}
+     * @inheritDoc
+     * @codingStandardsIgnoreStart
      */
     protected function _getCreateTableSQL($tableName, array $columns, array $options = [])
     {
+        //@codingStandardsIgnoreEnd
         $queryFields = $this->getColumnDeclarationListSQL($columns);
 
         $query = 'CREATE TABLE ' . $tableName . ' (' . $queryFields . ')';

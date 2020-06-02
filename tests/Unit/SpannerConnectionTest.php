@@ -97,9 +97,29 @@ class SpannerConnectionTest extends TestCase
     public function deleteDataProvider()
     {
         return [
-            ['users', ['identifier' => 1], 'DELETE FROM users WHERE identifier = 1'],
-            ['events', ['event_id' => 1, 'id' => 4], 'DELETE FROM events WHERE event_id = 1 AND id = 4'],
-            ['test-takers', ['firstname' => 'firstname', 'lastname' => 'lastname'], 'DELETE FROM test-takers WHERE firstname = "firstname" AND lastname = "lastname"'],
+            [
+                'users',
+                [
+                    'identifier' => 1
+                ],
+                'DELETE FROM users WHERE identifier = 1'
+            ],
+            [
+                'events',
+                [
+                    'event_id' => 1,
+                    'id' => 4
+                ],
+                'DELETE FROM events WHERE event_id = 1 AND id = 4'
+            ],
+            [
+                'test-takers',
+                [
+                    'firstname' => 'firstname',
+                    'lastname' => 'lastname'
+                ],
+                'DELETE FROM test-takers WHERE firstname = "firstname" AND lastname = "lastname"'
+            ],
         ];
     }
 
@@ -153,8 +173,27 @@ class SpannerConnectionTest extends TestCase
     public function updateDataProvider()
     {
         return [
-            ['users', ['lastname' => 'fixture'], ['id' => 1], 'UPDATE users SET lastname = "fixture" WHERE id = 1'],
-            ['events', ['event_name' => 'name', 'event_log' => 4], ['name' => "fixture"], 'UPDATE events SET event_name = "name", event_log = 4 WHERE name = "fixture"'],
+            [
+                'users',
+                [
+                    'lastname' => 'fixture'
+                ],
+                [
+                    'id' => 1
+                ],
+                'UPDATE users SET lastname = "fixture" WHERE id = 1'
+            ],
+            [
+                'events',
+                [
+                    'event_name' => 'name',
+                    'event_log' => 4
+                ],
+                [
+                    'name' => "fixture"
+                ],
+                'UPDATE events SET event_name = "name", event_log = 4 WHERE name = "fixture"'
+            ],
         ];
     }
 
@@ -236,8 +275,16 @@ class SpannerConnectionTest extends TestCase
     public function updateDataProviderWithNull()
     {
         return [
-            //            ['logs', ['name' => null], ['id' => 1], 'UPDATE logs SET name =  WHERE id = 1'],
-            ['customers', ['name' => 'test'], ['payment' => null], 'UPDATE customers SET name = "test" WHERE payment IS NULL'],
+            [
+                'customers',
+                [
+                    'name' => 'test'
+                ],
+                [
+                    'payment' => null
+                ],
+                'UPDATE customers SET name = "test" WHERE payment IS NULL'
+            ],
         ];
     }
 

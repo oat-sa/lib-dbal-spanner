@@ -74,7 +74,10 @@ class SpannerConnectionWrapperTest extends TestCase
             ->with($tableExpression, $identifiers)
             ->willReturn('success');
 
-        $this->assertEquals('success', $this->getConnectionWrapper($_conn)->delete($tableExpression, $identifiers));
+        $this->assertEquals(
+            'success',
+            $this->getConnectionWrapper($_conn)->delete($tableExpression, $identifiers)
+        );
     }
 
     public function testUpdate()
@@ -89,7 +92,10 @@ class SpannerConnectionWrapperTest extends TestCase
             ->with($tableExpression, $data, $identifiers)
             ->willReturn('success');
 
-        $this->assertEquals('success', $this->getConnectionWrapper($_conn)->update($tableExpression, $data, $identifiers));
+        $this->assertEquals(
+            'success',
+            $this->getConnectionWrapper($_conn)->update($tableExpression, $data, $identifiers)
+        );
     }
 
     public function testInsert()
