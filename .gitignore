@@ -1,6 +1,5 @@
 /vendor/
 /.idea/
 /composer.lock
-/tests/Integration/env.ini
 /bin
 /tests/env.ini
