@@ -37,6 +37,8 @@ trait ConnectionTrait
 
     /**
      * @throws DBALException
+     *
+     * @return SpannerConnection|Connection
      */
     public function getConnection(): Connection
     {

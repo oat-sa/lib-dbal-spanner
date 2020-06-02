@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace OAT\Library\DBALSpanner;
 
+use ArrayIterator;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
@@ -90,7 +91,7 @@ class SpannerStatement implements IteratorAggregate, Statement
      *
      * @throws InvalidArgumentException when the sql statement uses both named and positional parameters.
      */
-    public function __construct(Database $database, string $sql, ?ParameterTranslator $parameterTranslator = null)
+    public function __construct(Database $database, string $sql, ParameterTranslator $parameterTranslator = null)
     {
         $this->database = $database;
 
@@ -379,8 +380,19 @@ class SpannerStatement implements IteratorAggregate, Statement
 
     public function getIterator()
     {
-        //@TODO @FIXME Need to implement iterator logic
-        return new SpannerIterator();
+        if (strpos($this->sql, 'SELECT') !== 0) {
+            throw new Exception('Statement must be a SELECT to use iterator');
+        }
+
+        if ($this->rows) {
+            return new ArrayIterator($this->rows);
+        }
+
+        if ($this->result) {
+            return $this->result->getIterator();
+        }
+
+        throw new Exception('There must be a previous result to iterate');
     }
 
     protected function loadRows($fetchMode = null)

@@ -20,7 +20,7 @@
 
 declare(strict_types=1);
 
-namespace OAT\Library\DBALSpanner\Tests\Integration;
+namespace OAT\Library\DBALSpanner\Tests\scripts;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
