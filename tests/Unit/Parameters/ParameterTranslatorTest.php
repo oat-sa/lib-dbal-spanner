@@ -43,7 +43,10 @@ class ParameterTranslatorTest extends TestCase
     public function testTranslatePlaceHolders($sql, $expected, $expectedPositionalParameterCount)
     {
         $this->assertEquals($expected, $this->subject->translatePlaceHolders($sql));
-        $this->assertEquals($expectedPositionalParameterCount, $this->getPrivateProperty($this->subject, 'positionalParameterCount'));
+        $this->assertEquals(
+            $expectedPositionalParameterCount,
+            $this->getPrivateProperty($this->subject, 'positionalParameterCount')
+        );
     }
 
     public function placeHoldersToTest()
@@ -79,8 +82,11 @@ class ParameterTranslatorTest extends TestCase
     /**
      * @dataProvider namedParamsToTest
      */
-    public function testConvertPositionalToNamedWithNamedParameters(array $expected, array $boundValues, array $params = null)
-    {
+    public function testConvertPositionalToNamedWithNamedParameters(
+        array $expected,
+        array $boundValues,
+        array $params = null
+    ) {
         $this->assertEquals($expected, $this->subject->convertPositionalToNamed($boundValues, $params));
     }
 
@@ -111,8 +117,11 @@ class ParameterTranslatorTest extends TestCase
     /**
      * @dataProvider positionalParamsToTest
      */
-    public function testConvertPositionalToNamedWithPositionalParameters(array $expected, array $boundValues, array $params = null)
-    {
+    public function testConvertPositionalToNamedWithPositionalParameters(
+        array $expected,
+        array $boundValues,
+        array $params = null
+    ) {
         $this->setPrivateProperty($this->subject, 'positionalParameterCount', 2);
 
         $this->assertEquals($expected, $this->subject->convertPositionalToNamed($boundValues, $params));
@@ -126,8 +135,34 @@ class ParameterTranslatorTest extends TestCase
         $value2 = 'value2';
 
         return [
-            [[['param1' => $value1, 'param2' => $value2], []], [], [$value1, $value2]],
-            [[['param1' => $value1, 'param2' => $value2], []], [$numericKey1 => $value1, $numericKey2 => $value2], null],
+            [
+                [
+                    [
+                        'param1' => $value1,
+                        'param2' => $value2
+                    ],
+                    []
+                ],
+                [],
+                [
+                    $value1,
+                    $value2
+                ]
+            ],
+            [
+                [
+                    [
+                        'param1' => $value1,
+                        'param2' => $value2
+                    ],
+                    []
+                ],
+                [
+                    $numericKey1 => $value1,
+                    $numericKey2 => $value2
+                ],
+                null
+            ],
         ];
     }
 }

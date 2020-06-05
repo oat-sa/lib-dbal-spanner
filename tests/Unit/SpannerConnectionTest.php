@@ -97,9 +97,29 @@ class SpannerConnectionTest extends TestCase
     public function deleteDataProvider()
     {
         return [
-            ['users', ['identifier' => 1], 'DELETE FROM users WHERE identifier = 1'],
-            ['events', ['event_id' => 1, 'id' => 4], 'DELETE FROM events WHERE event_id = 1 AND id = 4'],
-            ['test-takers', ['firstname' => 'firstname', 'lastname' => 'lastname'], 'DELETE FROM test-takers WHERE firstname = "firstname" AND lastname = "lastname"'],
+            [
+                'users',
+                [
+                    'identifier' => 1
+                ],
+                'DELETE FROM users WHERE identifier = 1'
+            ],
+            [
+                'events',
+                [
+                    'event_id' => 1,
+                    'id' => 4
+                ],
+                'DELETE FROM events WHERE event_id = 1 AND id = 4'
+            ],
+            [
+                'test-takers',
+                [
+                    'firstname' => 'firstname',
+                    'lastname' => 'lastname'
+                ],
+                'DELETE FROM test-takers WHERE firstname = "firstname" AND lastname = "lastname"'
+            ],
         ];
     }
 
@@ -116,17 +136,25 @@ class SpannerConnectionTest extends TestCase
     {
         $transaction = $this->createMock(Transaction::class);
         $transaction->expects($this->once())->method('commit');
-        $transaction->expects($this->once())->method('executeUpdate')->will($this->returnCallback(function ($arg) {
-            return $arg;
-        }));
+        $transaction->expects($this->once())->method('executeUpdate')->will(
+            $this->returnCallback(
+                function ($arg) {
+                    return $arg;
+                }
+            )
+        );
 
         $database = $this->createMock(Database::class);
         $database
             ->expects($this->once())
             ->method('runTransaction')
-            ->with($this->callback(function ($closure) use ($transaction, $expectedQuery) {
-                return $closure($transaction) == $expectedQuery;
-            }));
+            ->with(
+                $this->callback(
+                    function ($closure) use ($transaction, $expectedQuery) {
+                        return $closure($transaction) == $expectedQuery;
+                    }
+                )
+            );
 
         $connection = $this->getSpannerConnection(null, $database);
         $connection->delete($tableName, $identifiers);
@@ -145,8 +173,27 @@ class SpannerConnectionTest extends TestCase
     public function updateDataProvider()
     {
         return [
-            ['users', ['lastname' => 'fixture'], ['id' => 1], 'UPDATE users SET lastname = "fixture" WHERE id = 1'],
-            ['events', ['event_name' => 'name', 'event_log' => 4], ['name' => "fixture"], 'UPDATE events SET event_name = "name", event_log = 4 WHERE name = "fixture"'],
+            [
+                'users',
+                [
+                    'lastname' => 'fixture'
+                ],
+                [
+                    'id' => 1
+                ],
+                'UPDATE users SET lastname = "fixture" WHERE id = 1'
+            ],
+            [
+                'events',
+                [
+                    'event_name' => 'name',
+                    'event_log' => 4
+                ],
+                [
+                    'name' => "fixture"
+                ],
+                'UPDATE events SET event_name = "name", event_log = 4 WHERE name = "fixture"'
+            ],
         ];
     }
 
@@ -164,17 +211,25 @@ class SpannerConnectionTest extends TestCase
     {
         $transaction = $this->createMock(Transaction::class);
         $transaction->expects($this->once())->method('commit');
-        $transaction->expects($this->once())->method('executeUpdate')->will($this->returnCallback(function ($arg) {
-            return $arg;
-        }));
+        $transaction->expects($this->once())->method('executeUpdate')->will(
+            $this->returnCallback(
+                function ($arg) {
+                    return $arg;
+                }
+            )
+        );
 
         $database = $this->createMock(Database::class);
         $database
             ->expects($this->once())
             ->method('runTransaction')
-            ->with($this->callback(function ($closure) use ($transaction, $expectedQuery) {
-                return $closure($transaction) == $expectedQuery;
-            }));
+            ->with(
+                $this->callback(
+                    function ($closure) use ($transaction, $expectedQuery) {
+                        return $closure($transaction) == $expectedQuery;
+                    }
+                )
+            );
 
         $connection = $this->getSpannerConnection(null, $database);
         $connection->update($tableName, $data, $identifiers);
@@ -220,8 +275,16 @@ class SpannerConnectionTest extends TestCase
     public function updateDataProviderWithNull()
     {
         return [
-            //            ['logs', ['name' => null], ['id' => 1], 'UPDATE logs SET name =  WHERE id = 1'],
-            ['customers', ['name' => 'test'], ['payment' => null], 'UPDATE customers SET name = "test" WHERE payment IS NULL'],
+            [
+                'customers',
+                [
+                    'name' => 'test'
+                ],
+                [
+                    'payment' => null
+                ],
+                'UPDATE customers SET name = "test" WHERE payment IS NULL'
+            ],
         ];
     }
 
@@ -240,24 +303,36 @@ class SpannerConnectionTest extends TestCase
         $platform = $this->createMock(AbstractPlatform::class);
         $platform->expects($this->any())
             ->method('getIsNullExpression')
-            ->will($this->returnCallback(function () {
-                return func_get_arg(0) . ' IS NULL';
-            }));
+            ->will(
+                $this->returnCallback(
+                    function () {
+                        return func_get_arg(0) . ' IS NULL';
+                    }
+                )
+            );
 
         $driver = $this->createConfiguredMock(Driver::class, ['getDatabasePlatform' => $platform]);
 
         $transaction = $this->createMock(Transaction::class);
         $transaction->expects($this->once())->method('commit');
-        $transaction->expects($this->once())->method('executeUpdate')->will($this->returnCallback(function ($arg) {
-            return $arg;
-        }));
+        $transaction->expects($this->once())->method('executeUpdate')->will(
+            $this->returnCallback(
+                function ($arg) {
+                    return $arg;
+                }
+            )
+        );
 
         $database = $this->createMock(Database::class);
         $database->expects($this->atLeastOnce())
             ->method('runTransaction')
-            ->with($this->callback(function ($closure) use ($transaction, $expectedQuery) {
-                return $closure($transaction) == $expectedQuery;
-            }));
+            ->with(
+                $this->callback(
+                    function ($closure) use ($transaction, $expectedQuery) {
+                        return $closure($transaction) == $expectedQuery;
+                    }
+                )
+            );
 
         $connection = $this->getSpannerConnection($driver, $database);
         $connection->update($tableName, $data, $identifiers);
@@ -276,9 +351,13 @@ class SpannerConnectionTest extends TestCase
         $database
             ->expects($this->once())
             ->method('runTransaction')
-            ->with($this->callback(static function (Closure $transactionContent) use ($transaction, $closure) {
-                return $transactionContent($transaction) === $closure($transaction);
-            }))
+            ->with(
+                $this->callback(
+                    static function (Closure $transactionContent) use ($transaction, $closure) {
+                        return $transactionContent($transaction) === $closure($transaction);
+                    }
+                )
+            )
             ->willReturn($transaction);
 
         $connection = $this->getSpannerConnection(null, $database);

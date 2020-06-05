@@ -22,6 +22,7 @@ declare(strict_types=1);
 
 namespace OAT\Library\DBALSpanner;
 
+use ArrayIterator;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
@@ -90,7 +91,7 @@ class SpannerStatement implements IteratorAggregate, Statement
      *
      * @throws InvalidArgumentException when the sql statement uses both named and positional parameters.
      */
-    public function __construct(Database $database, string $sql, ?ParameterTranslator $parameterTranslator = null)
+    public function __construct(Database $database, string $sql, ParameterTranslator $parameterTranslator = null)
     {
         $this->database = $database;
 
@@ -143,7 +144,8 @@ class SpannerStatement implements IteratorAggregate, Statement
     public function execute($params = null): bool
     {
         try {
-            [$parameters, $types] = $this->parameterTranslator->convertPositionalToNamed($this->boundValues, $params, $this->boundTypes);
+            [$parameters, $types] = $this->parameterTranslator
+                ->convertPositionalToNamed($this->boundValues, $params, $this->boundTypes);
         } catch (InvalidArgumentException $exception) {
             if ($this->logger) {
                 $this->logger->error(
@@ -168,8 +170,16 @@ class SpannerStatement implements IteratorAggregate, Statement
         try {
             return $this->database->runTransaction(
                 function (Transaction $t) use ($parameters, $types) {
-                    $this->affectedRows = $t->executeUpdate($this->sql, ['parameters' => $parameters, 'types' => $types]);
+                    $this->affectedRows = $t->executeUpdate(
+                        $this->sql,
+                        [
+                            'parameters' => $parameters,
+                            'types' => $types,
+                        ]
+                    );
+
                     $t->commit();
+
                     $this->result = null;
                     $this->rows = null;
 
@@ -261,7 +271,6 @@ class SpannerStatement implements IteratorAggregate, Statement
 
         $this->loadRows($fetchMode);
 
-        // Find the row offset.
         $this->offset = $this->findOffset($cursorOrientation, $cursorOffset);
 
         return $this->offset !== -1
@@ -379,7 +388,19 @@ class SpannerStatement implements IteratorAggregate, Statement
 
     public function getIterator()
     {
-        throw new Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
+        if (strpos($this->sql, 'SELECT') !== 0) {
+            throw new Exception('Statement must be a SELECT to use iterator');
+        }
+
+        if ($this->rows) {
+            return new ArrayIterator($this->rows);
+        }
+
+        if ($this->result) {
+            return $this->result->getIterator();
+        }
+
+        throw new Exception('There must be a previous result to iterate');
     }
 
     protected function loadRows($fetchMode = null)

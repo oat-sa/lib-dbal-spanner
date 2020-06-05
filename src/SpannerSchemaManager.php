@@ -22,11 +22,10 @@ declare(strict_types=1);
 
 namespace OAT\Library\DBALSpanner;
 
-use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types\Type;
+use Exception;
 
 class SpannerSchemaManager extends AbstractSchemaManager
 {
@@ -37,11 +36,16 @@ class SpannerSchemaManager extends AbstractSchemaManager
 
     public function createDatabase($databaseName): void
     {
-        throw new \Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
+        throw new Exception("\e[31m\e[1m" . __METHOD__ . "\e[21m\e[0m" . ' not implemented.');
     }
 
+    /**
+     * @inheritDoc
+     * @codingStandardsIgnoreStart
+     */
     protected function _getPortableTableColumnDefinition($tableColumn)
     {
+        // @codingStandardsIgnoreEnd
         $tableColumn = array_change_key_case($tableColumn, CASE_LOWER);
 
         $dbType = strtolower($tableColumn['type']);
@@ -58,13 +62,23 @@ class SpannerSchemaManager extends AbstractSchemaManager
         return new Column($tableColumn['field'], Type::getType($type), $options);
     }
 
+    /**
+     * @inheritDoc
+     * @codingStandardsIgnoreStart
+     */
     protected function _getPortableTableDefinition($table)
     {
+        // @codingStandardsIgnoreEnd
         return $table['table_name'];
     }
 
+    /**
+     * @inheritDoc
+     * @codingStandardsIgnoreStart
+     */
     protected function _getPortableTableIndexesList($tableIndexes, $tableName = null)
     {
+        // @codingStandardsIgnoreEnd
         $convertedIndexes = [];
         foreach ($tableIndexes as $k => $v) {
             $v = array_change_key_case($v, CASE_LOWER);

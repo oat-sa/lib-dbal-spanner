@@ -18,25 +18,28 @@
  * Copyright (c) 2019 (original work) Open Assessment Technologies SA;
  */
 
-namespace OAT\Library\DBALSpanner\Tests\Integration;
+declare(strict_types=1);
+
+namespace OAT\Library\DBALSpanner\Tests\scripts;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
-use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Google\Cloud\Core\Exception\BadRequestException;
 use Google\Cloud\Spanner\Transaction;
-use OAT\Library\DBALSpanner\SpannerConnectionWrapper;
-use OAT\Library\DBALSpanner\SpannerDriver;
-use OAT\Library\DBALSpanner\SpannerPlatform;
+use OAT\Library\DBALSpanner\Tests\_helpers\ConfigurationTrait;
+use OAT\Library\DBALSpanner\Tests\_helpers\ConnectionTrait;
 
 class TransactionalTest
 {
-    protected const INSTANCE_NAME = 'tao-curgen-inst';
-    protected const DATABASE_NAME = 'julien-dbal-driver-tests';
+    use ConfigurationTrait;
+    use ConnectionTrait;
+
     public const TABLE_NAME = 'transactional_test';
 
-    /** @var array */
+    /**
+     * @var array
+     */
     public $failures = [];
 
     public function prepare()
@@ -71,7 +74,7 @@ class TransactionalTest
             }
         );
     }
-    
+
     private function operation($connection, $process)
     {
         $sql = 'SELECT id FROM ' . self::TABLE_NAME . ' WHERE consumed = false LIMIT 2';
@@ -126,30 +129,6 @@ class TransactionalTest
     public function finish()
     {
         $this->getConnection()->query('DELETE FROM ' . self::TABLE_NAME . ' WHERE true');
-    }
-
-    /**
-     * @return Connection|null
-     */
-    public function getConnection(): ?Connection
-    {
-        $connectionParams = [
-            'dbname' => self::DATABASE_NAME,
-            'instance' => self::INSTANCE_NAME,
-            'wrapperClass' => SpannerConnectionWrapper::class,
-            'driverClass' => SpannerDriver::class,
-            'platform' => new SpannerPlatform(),
-        ];
-
-        try {
-            $connection = DriverManager::getConnection($connectionParams);
-            $connection->connect();
-            return $connection;
-        } catch (\Exception $exception) {
-            var_dump($exception->getMessage());
-            echo 'Unable to connect to Spanner instance. Did you forget to start an instance and setup a database prior to running the integration tests?';
-            exit;
-        }
     }
 
     /**
