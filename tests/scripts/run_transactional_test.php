@@ -18,7 +18,9 @@
  * Copyright (c) 2019 (original work) Open Assessment Technologies SA;
  */
 
-use OAT\Library\DBALSpanner\Tests\Integration\TransactionalTest;
+declare(strict_types=1);
+
+use OAT\Library\DBALSpanner\Tests\scripts\TransactionalTest;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
@@ -56,9 +58,6 @@ exec('php ' . __DIR__ . '/run_transactional_test.php transactional >>' . $logFil
 sleep(3);
 
 $test->checkFinalTransactional();
-
-
-
 $test->finish();
 
 if (count($test->failures)) {

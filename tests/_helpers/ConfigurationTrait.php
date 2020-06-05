@@ -15,23 +15,27 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
- * Copyright (c) 2019 (original work) Open Assessment Technologies SA;
+ * Copyright (c) 2020 (original work) Open Assessment Technologies SA;
  */
 
-declare(strict_types=1);
+namespace OAT\Library\DBALSpanner\Tests\_helpers;
 
-namespace OAT\Library\DBALSpanner\Tests\Integration;
-
-use Psr\Log\AbstractLogger;
-
-/**
- * Simpler implementation to see what's going when setting up a Spanner instance.
- * No assertion is made so no need for a TestLogger.
- */
-class EchoLogger extends AbstractLogger
+trait ConfigurationTrait
 {
-    public function log($level, $message, array $context = array())
+    /**
+     * @var Configuration
+     */
+    public $configuration;
+
+    /**
+     * @return int|string|array
+     */
+    public function getConfiguration(string $config)
     {
-        echo $message, "\n";
+        if (!$this->configuration) {
+            $this->configuration = new Configuration();
+        }
+
+        return $this->configuration->get($config);
     }
 }

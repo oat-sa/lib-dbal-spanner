@@ -104,7 +104,9 @@ class SpannerStatementTest extends TestCase
         $subject = new SpannerStatement($this->database, '', $this->parameterTranslator);
 
         $this->expectException(DBALException::class);
-        $this->expectExceptionMessage('Operation \'OAT\Library\DBALSpanner\SpannerStatement::bindParam\' is not supported by platform.');
+        $this->expectExceptionMessage(
+            'Operation \'OAT\Library\DBALSpanner\SpannerStatement::bindParam\' is not supported by platform.'
+        );
         $subject->bindParam('column', $variable);
     }
 
@@ -128,8 +130,14 @@ class SpannerStatementTest extends TestCase
         $newSql = 'sql string with @param1 placeholder';
         $message = 'error message from parameter translator';
 
-        $this->parameterTranslator->method('translatePlaceHolders')->with($originalSql)->willReturn($newSql);
-        $this->parameterTranslator->method('convertPositionalToNamed')->willThrowException(new InvalidArgumentException($message));
+        $this->parameterTranslator
+            ->method('translatePlaceHolders')
+            ->with($originalSql)
+            ->willReturn($newSql);
+
+        $this->parameterTranslator
+            ->method('convertPositionalToNamed')
+            ->willThrowException(new InvalidArgumentException($message));
 
         $logger = new TestLogger();
 
@@ -139,7 +147,12 @@ class SpannerStatementTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage($message);
         $subject->execute();
-        $this->assertTrue($logger->hasRecordThatContains($message . ' in the statement \'' . $originalSql . '\'.', LogLevel::ERROR));
+        $this->assertTrue(
+            $logger->hasRecordThatContains(
+                $message . ' in the statement \'' . $originalSql . '\'.',
+                LogLevel::ERROR
+            )
+        );
     }
 
     public function testExecuteWithNonDmlStatementRunsDatabaseExecuteAndEmptiesRowsAndReturnsTrue()
@@ -199,15 +212,20 @@ class SpannerStatementTest extends TestCase
             ->disableOriginalConstructor()
             ->setMethods(['executeUpdate', 'commit'])
             ->getMock();
-        $transaction->method('executeUpdate')->with($newSql, ['parameters' => $parameters, 'types' => []])->willReturn($affectedRows);
+        $transaction->method('executeUpdate')
+            ->with($newSql, ['parameters' => $parameters, 'types' => []])
+            ->willReturn($affectedRows);
+
         $transaction->expects($this->once())->method('commit');
 
         $this->database->method('runTransaction')
-            ->with($this->callback(
-                function ($closure) use ($transaction) {
-                    return $closure($transaction);
-                }
-            ))
+            ->with(
+                $this->callback(
+                    function ($closure) use ($transaction) {
+                        return $closure($transaction);
+                    }
+                )
+            )
             ->willReturn(true);
 
         $subject = new SpannerStatement($this->database, $originalSql, $this->parameterTranslator);
