@@ -24,7 +24,9 @@ use Google\Auth\Cache\SysVCacheItemPool;
 use Google\Cloud\Core\Exception\GoogleException;
 use Google\Cloud\Core\Lock\SemaphoreLock;
 use Google\Cloud\Spanner\Session\CacheSessionPool;
+use Google\Cloud\Spanner\Session\SessionPoolInterface;
 use Google\Cloud\Spanner\SpannerClient;
+use Psr\Cache\CacheItemPoolInterface;
 
 class SpannerClientFactory
 {
@@ -33,17 +35,64 @@ class SpannerClientFactory
     private const SESSIONS_MIN = 1;
     private const SESSIONS_MAX = 100;
 
-    /**
-     * Creates a Google Spanner client from env configuration.
-     *
-     * @return SpannerClient
-     * @throws GoogleException When ext/grpc is missing.
-     */
-    public function create()
+    /** @var CacheItemPoolInterface|null */
+    private $authCache;
+
+    /** @var array|null */
+    private $configuration;
+
+    /** @var string|null */
+    private $keyFilePath;
+
+    public function __construct(
+        CacheItemPoolInterface $authCache = null,
+        array $configuration = null,
+        string $keyFilePath = null
+    )
     {
-        $authCache = new SysVCacheItemPool();
-        $keyFileName = $_ENV[self::KEY_FILE_ENV_VARIABLE] ?? self::DEFAULT_CREDENTIALS_FILE;
-        if ($keyFileName === '') {
+        $this->authCache = $authCache;
+        $this->configuration = $configuration;
+        $this->keyFilePath = $keyFilePath === null
+            ? ($_ENV[self::KEY_FILE_ENV_VARIABLE] ?? self::DEFAULT_CREDENTIALS_FILE)
+            : $keyFilePath;
+    }
+
+    /**
+     * @throws GoogleException
+     */
+    public function create(): SpannerClient
+    {
+        return new SpannerClient(
+            array_merge(
+                [
+                    'keyFile' => $this->getKeyFileParsedContent(),
+                    'authCache' => $this->authCache ?? new SysVCacheItemPool()
+                ],
+                $this->configuration ?? []
+            )
+        );
+    }
+
+    /**
+     * @TODO We must remove this method in the next major version
+     *
+     * @deprecated Please DO NOT use this method. The client of this library should define it if needed
+     */
+    public function createCacheSessionPool(): SessionPoolInterface
+    {
+        return new CacheSessionPool(
+            new SysVCacheItemPool(['proj' => 'B']),
+            [
+                'lock' => new SemaphoreLock(65535),
+                'minSessions' => self::SESSIONS_MIN,
+                'maxSessions' => self::SESSIONS_MAX,
+            ]
+        );
+    }
+
+    private function getKeyFileParsedContent(): array
+    {
+        if (empty($this->keyFilePath) || !is_readable($this->keyFilePath)) {
             new GoogleException(
                 sprintf(
                     'Missing path to Google credentials key file (should be set as an environment variable "%s").',
@@ -52,32 +101,6 @@ class SpannerClientFactory
             );
         }
 
-        $keyFile = json_decode(file_get_contents($keyFileName), true);
-
-        return new SpannerClient(['keyFile' => $keyFile, 'authCache' => $authCache]);
-    }
-
-    /**
-     * Creates a session pool to allow multiple sessions to share the auth cache.
-     *
-     * @return CacheSessionPool
-     * @throws \Exception
-     */
-    public function createCacheSessionPool()
-    {
-        // Use a different project identifier for ftok than the default.
-        $sessionCache = new SysVCacheItemPool(['proj' => 'B']);
-
-        // Creates multiple sessions.
-        $sessionPool = new CacheSessionPool(
-            $sessionCache,
-            [
-                'lock' => new SemaphoreLock(65535),
-                'minSessions' => self::SESSIONS_MIN,
-                'maxSessions' => self::SESSIONS_MAX,
-            ]
-        );
-
-        return $sessionPool;
+        return json_decode(file_get_contents($this->keyFilePath), true);
     }
 }
