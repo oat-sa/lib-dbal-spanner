@@ -38,7 +38,7 @@ class SpannerClientFactory
     /** @var CacheItemPoolInterface|null */
     private $authCache;
 
-    /** @var array|null */
+    /** @var array */
     private $configuration;
 
     /** @var string|null */
@@ -48,10 +48,9 @@ class SpannerClientFactory
         CacheItemPoolInterface $authCache = null,
         array $configuration = null,
         string $keyFilePath = null
-    )
-    {
-        $this->authCache = $authCache;
-        $this->configuration = $configuration;
+    ) {
+        $this->authCache = $authCache ?? new SysVCacheItemPool();
+        $this->configuration = $configuration ?? [];
         $this->keyFilePath = $keyFilePath === null
             ? ($_ENV[self::KEY_FILE_ENV_VARIABLE] ?? self::DEFAULT_CREDENTIALS_FILE)
             : $keyFilePath;
@@ -66,9 +65,9 @@ class SpannerClientFactory
             array_merge(
                 [
                     'keyFile' => $this->getKeyFileParsedContent(),
-                    'authCache' => $this->authCache ?? new SysVCacheItemPool()
+                    'authCache' => $this->authCache
                 ],
-                $this->configuration ?? []
+                $this->configuration
             )
         );
     }
@@ -90,10 +89,13 @@ class SpannerClientFactory
         );
     }
 
+    /**
+     * @throws GoogleException
+     */
     private function getKeyFileParsedContent(): array
     {
         if (empty($this->keyFilePath) || !is_readable($this->keyFilePath)) {
-            new GoogleException(
+            throw new GoogleException(
                 sprintf(
                     'Missing path to Google credentials key file (should be set as an environment variable "%s").',
                     self::KEY_FILE_ENV_VARIABLE
