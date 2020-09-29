@@ -5,6 +5,7 @@ namespace OAT\Library\DBALSpanner\Tests\Unit;
 use Closure;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Google\Cloud\Core\LongRunning\LongRunningOperation;
 use Google\Cloud\Spanner\Database;
@@ -44,6 +45,48 @@ class SpannerConnectionTest extends TestCase
 
         $this->assertArrayHasKey('sql-query', $cachedStatements);
         $this->assertEquals($statement, $cachedStatements['sql-query']);
+    }
+
+    /**
+     * @dataProvider getParameterTypeProvider
+     */
+    public function testGetParameterType($expected, $type, $value): void
+    {
+        $this->assertSame(
+            $expected,
+            $this->invokePrivateMethod($this->getSpannerConnection(), 'getParameterType', [$value, $type])
+        );
+    }
+
+    public function getParameterTypeProvider(): array
+    {
+        return [
+            [
+                'expected' => ParameterType::NULL,
+                'type' => ParameterType::NULL,
+                'value' => null,
+            ],
+            [
+                'expected' => ParameterType::NULL,
+                'type' => '',
+                'value' => null,
+            ],
+            [
+                'expected' => ParameterType::BOOLEAN,
+                'type' => '',
+                'value' => true,
+            ],
+            [
+                'expected' => ParameterType::INTEGER,
+                'type' => '',
+                'value' => 1,
+            ],
+            [
+                'expected' => ParameterType::STRING,
+                'type' => '',
+                'value' => 'string',
+            ]
+        ];
     }
 
     public function testPrepareFromCache()

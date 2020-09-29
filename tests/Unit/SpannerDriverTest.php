@@ -24,7 +24,6 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Instance;
-use Google\Cloud\Spanner\Session\CacheSessionPool;
 use Google\Cloud\Spanner\Session\SessionPoolInterface;
 use Google\Cloud\Spanner\SpannerClient;
 use OAT\Library\DBALSpanner\SpannerClient\SpannerClientFactory;
@@ -58,13 +57,14 @@ class SpannerDriverTest extends TestCase
 
     public function testConstructorWithDefaultValues()
     {
-        $clientFactory = $this->createMock(SpannerClientFactory::class);
-        $sessionPool = $this->createMock(CacheSessionPool::class);
-
-        $subject = new SpannerDriver($clientFactory, $sessionPool);
-
-        $this->assertSame($clientFactory, $this->getPrivateProperty($subject, 'spannerClientFactory'));
-        $this->assertSame($sessionPool, $this->getPrivateProperty($subject, 'sessionPool'));
+        $this->assertSame(
+            $this->spannerClientFactory,
+            $this->getPrivateProperty($this->subject, 'spannerClientFactory')
+        );
+        $this->assertSame(
+            $this->sessionPool,
+            $this->getPrivateProperty($this->subject, 'sessionPool')
+        );
     }
 
     public function testConnect()

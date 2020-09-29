@@ -33,6 +33,7 @@ use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Instance;
 use Google\Cloud\Spanner\Session\CacheSessionPool;
 use Google\Cloud\Spanner\Session\SessionPoolInterface;
+use Google\Cloud\Spanner\SpannerClient;
 use LogicException;
 use OAT\Library\DBALSpanner\SpannerClient\SpannerClientFactory;
 
@@ -40,9 +41,9 @@ class SpannerDriver implements Driver
 {
     public const DRIVER_NAME = 'gcp-spanner';
     public const DRIVER_OPTION_AUTH_POOL = 'driver-option-auth-pool';
+    public const DRIVER_OPTION_SESSION_POOL = 'driver-option-session-pool';
     public const DRIVER_OPTION_CLIENT_CONFIGURATION = 'driver-option-client-configuration';
     public const DRIVER_OPTION_CREDENTIALS_FILE_PATH = 'driver-option-credentials-file-path';
-    public const DRIVER_OPTION_SESSION_POOL = 'driver-option-auth-pool';
 
     private const SESSIONS_MIN = 1;
     private const SESSIONS_MAX = 100;
@@ -67,6 +68,9 @@ class SpannerDriver implements Driver
 
     /** @var array */
     private $driverOptions;
+
+    /** @var SpannerClient */
+    private $spannerClient;
 
     public function __construct(
         SpannerClientFactory $spannerClientFactory = null,
@@ -188,9 +192,7 @@ class SpannerDriver implements Driver
     public function getInstance(string $instanceName): Instance
     {
         if ($this->instance === null) {
-            $spannerClient = $this->getSpannerClientFactory()->create();
-
-            $instance = $spannerClient->instance($instanceName);
+            $instance = $this->getSpannerClient()->instance($instanceName);
 
             $this->instanceName = $instanceName;
             $this->instance = $instance;
@@ -259,5 +261,17 @@ class SpannerDriver implements Driver
         }
 
         return $this->spannerClientFactory;
+    }
+
+    /**
+     * @throws GoogleException
+     */
+    private function getSpannerClient(): SpannerClient
+    {
+        if ($this->spannerClient === null) {
+            $this->spannerClient = $this->getSpannerClientFactory()->create();
+        }
+
+        return $this->spannerClient;
     }
 }
