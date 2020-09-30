@@ -225,27 +225,29 @@ class SpannerDriver implements Driver
         return $databaseList;
     }
 
-    private function getSessionPool(): SessionPoolInterface
+    private function getSessionPool(): ?SessionPoolInterface
     {
         if ($this->sessionPool !== null) {
             return $this->sessionPool;
         }
 
-        $this->sessionPool = $this->driverOptions[self::DRIVER_OPTION_SESSION_POOL] ?? null;
+        if (array_key_exists(self::DRIVER_OPTION_SESSION_POOL, $this->driverOptions)) {
+            $this->sessionPool = $this->driverOptions[self::DRIVER_OPTION_SESSION_POOL];
 
-        if ($this->sessionPool === null) {
-            /**
-             * @deprecated This method should be avoided and dependency should be always passed
-             */
-            $this->sessionPool = new CacheSessionPool(
-                new SysVCacheItemPool(['proj' => 'B']),
-                [
-                    'lock' => new SemaphoreLock(65535),
-                    'minSessions' => self::SESSIONS_MIN,
-                    'maxSessions' => self::SESSIONS_MAX,
-                ]
-            );
+            return $this->sessionPool;
         }
+
+        /**
+         * @deprecated This method should be avoided and dependency should be always passed
+         */
+        $this->sessionPool = new CacheSessionPool(
+            new SysVCacheItemPool(['proj' => 'B']),
+            [
+                'lock' => new SemaphoreLock(65535),
+                'minSessions' => self::SESSIONS_MIN,
+                'maxSessions' => self::SESSIONS_MAX,
+            ]
+        );
 
         return $this->sessionPool;
     }
