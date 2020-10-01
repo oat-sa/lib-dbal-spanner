@@ -46,11 +46,6 @@ class SpannerPlatform extends AbstractPlatform
         return 'INT64';
     }
 
-    protected function getQueryBuilder()
-    {
-        return new QueryBuilder();
-    }
-
     public function getListTablesSQL()
     {
         return 'SELECT table_name
