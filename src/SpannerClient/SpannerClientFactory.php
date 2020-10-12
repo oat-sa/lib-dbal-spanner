@@ -92,9 +92,13 @@ class SpannerClientFactory
     /**
      * @throws GoogleException
      */
-    private function getKeyFileParsedContent(): array
+    private function getKeyFileParsedContent(): ?array
     {
-        if (empty($this->keyFilePath) || !is_readable($this->keyFilePath)) {
+        if (empty($this->keyFilePath)) {
+            return null;
+        }
+
+        if (!is_readable($this->keyFilePath)) {
             throw new GoogleException(
                 sprintf(
                     'Missing path to Google credentials key file (should be set as an environment variable "%s").',
