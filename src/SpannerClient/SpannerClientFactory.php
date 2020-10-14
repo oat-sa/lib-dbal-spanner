@@ -44,16 +44,19 @@ class SpannerClientFactory
     /** @var string|null */
     private $keyFilePath;
 
+    /** @var GCECredentials|null */
+    private $credentialsFetcher;
+
     public function __construct(
         CacheItemPoolInterface $authCache = null,
+        GCECredentials $credentialsFetcher = null,
         array $configuration = null,
         string $keyFilePath = null
     ) {
         $this->authCache = $authCache ?? new SysVCacheItemPool();
         $this->configuration = $configuration ?? [];
-        $this->keyFilePath = $keyFilePath === null
-            ? ($_ENV[self::KEY_FILE_ENV_VARIABLE] ?? null)
-            : $keyFilePath;
+        $this->keyFilePath = $keyFilePath === null ? ($_ENV[self::KEY_FILE_ENV_VARIABLE] ?? null) : $keyFilePath;
+        $this->credentialsFetcher = $credentialsFetcher;
     }
 
     /**
@@ -72,15 +75,13 @@ class SpannerClientFactory
         );
 
         if ($keyFileContent === null) {
-            //FIXME @TODO This is required to test with DevOps. It will be refactored as soon as GCP works.
             $configuration = array_merge(
                 $configuration,
                 [
                     'transport' => 'grpc',
-                    'credentialsFetcher' => new GCECredentials(),
+                    'credentialsFetcher' => $this->credentialsFetcher ?? new GCECredentials(),
                 ]
             );
-            //FIXME
         }
 
         return new SpannerClient($configuration);
