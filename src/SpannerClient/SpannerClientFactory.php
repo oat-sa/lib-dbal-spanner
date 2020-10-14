@@ -21,6 +21,7 @@
 namespace OAT\Library\DBALSpanner\SpannerClient;
 
 use Google\Auth\Cache\SysVCacheItemPool;
+use Google\Auth\Credentials\GCECredentials;
 use Google\Cloud\Core\Exception\GoogleException;
 use Google\Cloud\Core\Lock\SemaphoreLock;
 use Google\Cloud\Spanner\Session\CacheSessionPool;
@@ -60,15 +61,29 @@ class SpannerClientFactory
      */
     public function create(): SpannerClient
     {
-        return new SpannerClient(
-            array_merge(
-                [
-                    'keyFile' => $this->getKeyFileParsedContent(),
-                    'authCache' => $this->authCache
-                ],
-                $this->configuration
-            )
+        $keyFileContent = $this->getKeyFileParsedContent();
+
+        $configuration = array_merge(
+            [
+                'keyFile' => $keyFileContent,
+                'authCache' => $this->authCache,
+            ],
+            $this->configuration
         );
+
+        if ($keyFileContent === null) {
+            //FIXME @TODO This is required to test with DevOps. It will be refactored as soon as GCP works.
+            $configuration = array_merge(
+                $configuration,
+                [
+                    'transport' => 'grpc',
+                    'credentialsFetcher' => new GCECredentials(),
+                ]
+            );
+            //FIXME
+        }
+
+        return new SpannerClient($configuration);
     }
 
     /**
