@@ -42,6 +42,7 @@ class SpannerDriver implements Driver
     public const DRIVER_NAME = 'gcp-spanner';
     public const DRIVER_OPTION_AUTH_POOL = 'driver-option-auth-pool';
     public const DRIVER_OPTION_SESSION_POOL = 'driver-option-session-pool';
+    public const DRIVER_OPTION_CREDENTIALS_FETCHER = 'driver-option-credentials-fetcher';
     public const DRIVER_OPTION_CLIENT_CONFIGURATION = 'driver-option-client-configuration';
     public const DRIVER_OPTION_CREDENTIALS_FILE_PATH = 'driver-option-credentials-file-path';
 
@@ -257,6 +258,7 @@ class SpannerDriver implements Driver
         if ($this->spannerClientFactory === null) {
             $this->spannerClientFactory = new SpannerClientFactory(
                 $this->driverOptions[self::DRIVER_OPTION_AUTH_POOL] ?? null,
+                $this->driverOptions[self::DRIVER_OPTION_CREDENTIALS_FETCHER] ?? null,
                 $this->driverOptions[self::DRIVER_OPTION_CLIENT_CONFIGURATION] ?? null,
                 $this->driverOptions[self::DRIVER_OPTION_CREDENTIALS_FILE_PATH] ?? null
             );
