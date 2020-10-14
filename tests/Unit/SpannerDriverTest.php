@@ -234,4 +234,19 @@ class SpannerDriverTest extends TestCase
 
         $this->assertEquals(['salut'], $this->subject->listDatabases(''));
     }
+
+    public function testListDatabasesFromDriverOptions()
+    {
+        $this->setPrivateProperty(
+            $this->subject,
+            'driverOptions',
+            [
+                SpannerDriver::DRIVER_OPTION_DATABASES => [
+                    'my_db'
+                ],
+            ]
+        );
+
+        $this->assertEquals(['my_db'], $this->subject->listDatabases(''));
+    }
 }
