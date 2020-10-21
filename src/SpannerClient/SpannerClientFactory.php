@@ -21,6 +21,7 @@
 namespace OAT\Library\DBALSpanner\SpannerClient;
 
 use Google\Auth\Cache\SysVCacheItemPool;
+use Google\Auth\Credentials\GCECredentials;
 use Google\Cloud\Core\Exception\GoogleException;
 use Google\Cloud\Core\Lock\SemaphoreLock;
 use Google\Cloud\Spanner\Session\CacheSessionPool;
@@ -31,7 +32,6 @@ use Psr\Cache\CacheItemPoolInterface;
 class SpannerClientFactory
 {
     private const KEY_FILE_ENV_VARIABLE = 'GOOGLE_APPLICATION_CREDENTIALS';
-    private const DEFAULT_CREDENTIALS_FILE = '/var/google/key/key.json';
     private const SESSIONS_MIN = 1;
     private const SESSIONS_MAX = 100;
 
@@ -44,16 +44,19 @@ class SpannerClientFactory
     /** @var string|null */
     private $keyFilePath;
 
+    /** @var GCECredentials|null */
+    private $credentialsFetcher;
+
     public function __construct(
         CacheItemPoolInterface $authCache = null,
+        GCECredentials $credentialsFetcher = null,
         array $configuration = null,
         string $keyFilePath = null
     ) {
         $this->authCache = $authCache ?? new SysVCacheItemPool();
         $this->configuration = $configuration ?? [];
-        $this->keyFilePath = $keyFilePath === null
-            ? ($_ENV[self::KEY_FILE_ENV_VARIABLE] ?? self::DEFAULT_CREDENTIALS_FILE)
-            : $keyFilePath;
+        $this->keyFilePath = $keyFilePath === null ? ($_ENV[self::KEY_FILE_ENV_VARIABLE] ?? null) : $keyFilePath;
+        $this->credentialsFetcher = $credentialsFetcher;
     }
 
     /**
@@ -61,15 +64,27 @@ class SpannerClientFactory
      */
     public function create(): SpannerClient
     {
-        return new SpannerClient(
-            array_merge(
-                [
-                    'keyFile' => $this->getKeyFileParsedContent(),
-                    'authCache' => $this->authCache
-                ],
-                $this->configuration
-            )
+        $keyFileContent = $this->getKeyFileParsedContent();
+
+        $configuration = array_merge(
+            [
+                'keyFile' => $keyFileContent,
+                'authCache' => $this->authCache,
+            ],
+            $this->configuration
         );
+
+        if ($keyFileContent === null) {
+            $configuration = array_merge(
+                $configuration,
+                [
+                    'transport' => 'grpc',
+                    'credentialsFetcher' => $this->credentialsFetcher ?? new GCECredentials(),
+                ]
+            );
+        }
+
+        return new SpannerClient($configuration);
     }
 
     /**
@@ -92,9 +107,13 @@ class SpannerClientFactory
     /**
      * @throws GoogleException
      */
-    private function getKeyFileParsedContent(): array
+    private function getKeyFileParsedContent(): ?array
     {
-        if (empty($this->keyFilePath) || !is_readable($this->keyFilePath)) {
+        if (empty($this->keyFilePath)) {
+            return null;
+        }
+
+        if (!is_readable($this->keyFilePath)) {
             throw new GoogleException(
                 sprintf(
                     'Missing path to Google credentials key file (should be set as an environment variable "%s").',

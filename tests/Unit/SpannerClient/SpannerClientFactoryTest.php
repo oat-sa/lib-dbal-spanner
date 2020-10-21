@@ -16,7 +16,7 @@ class SpannerClientFactoryTest extends TestCase
             'Missing path to Google credentials key file (should be set as an environment variable "GOOGLE_APPLICATION_CREDENTIALS").'
         );
 
-        $subject = new SpannerClientFactory(null, null, 'invalid');
+        $subject = new SpannerClientFactory(null, null, null, 'invalid');
         $subject->create();
     }
 

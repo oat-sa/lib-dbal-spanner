@@ -42,8 +42,10 @@ class SpannerDriver implements Driver
     public const DRIVER_NAME = 'gcp-spanner';
     public const DRIVER_OPTION_AUTH_POOL = 'driver-option-auth-pool';
     public const DRIVER_OPTION_SESSION_POOL = 'driver-option-session-pool';
+    public const DRIVER_OPTION_CREDENTIALS_FETCHER = 'driver-option-credentials-fetcher';
     public const DRIVER_OPTION_CLIENT_CONFIGURATION = 'driver-option-client-configuration';
     public const DRIVER_OPTION_CREDENTIALS_FILE_PATH = 'driver-option-credentials-file-path';
+    public const DRIVER_OPTION_DATABASES = 'driver-option-databases';
 
     private const SESSIONS_MIN = 1;
     private const SESSIONS_MAX = 100;
@@ -211,6 +213,10 @@ class SpannerDriver implements Driver
      */
     public function listDatabases(string $instanceName = ''): array
     {
+        if (!empty($this->driverOptions[self::DRIVER_OPTION_DATABASES])) {
+            return $this->driverOptions[self::DRIVER_OPTION_DATABASES];
+        }
+
         if ($instanceName === '') {
             $instanceName = $this->instanceName;
         }
@@ -257,6 +263,7 @@ class SpannerDriver implements Driver
         if ($this->spannerClientFactory === null) {
             $this->spannerClientFactory = new SpannerClientFactory(
                 $this->driverOptions[self::DRIVER_OPTION_AUTH_POOL] ?? null,
+                $this->driverOptions[self::DRIVER_OPTION_CREDENTIALS_FETCHER] ?? null,
                 $this->driverOptions[self::DRIVER_OPTION_CLIENT_CONFIGURATION] ?? null,
                 $this->driverOptions[self::DRIVER_OPTION_CREDENTIALS_FILE_PATH] ?? null
             );
