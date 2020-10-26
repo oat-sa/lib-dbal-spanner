@@ -24,8 +24,8 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Instance;
+use Google\Cloud\Spanner\Session\SessionPoolInterface;
 use Google\Cloud\Spanner\SpannerClient;
-use LogicException;
 use OAT\Library\DBALSpanner\SpannerClient\SpannerClientFactory;
 use OAT\Library\DBALSpanner\SpannerConnection;
 use OAT\Library\DBALSpanner\SpannerDriver;
@@ -45,26 +45,28 @@ class SpannerDriverTest extends TestCase
     /** @var SpannerClientFactory|MockObject */
     private $spannerClientFactory;
 
+    /** @var SessionPoolInterface|MockObject */
+    private $sessionPool;
+
     public function setUp(): void
     {
-        $this->spannerClientFactory = $this->getMockBuilder(SpannerClientFactory::class)
-            ->disableOriginalConstructor()
-            ->setMethods(['create'])
-            ->getMock();
-
-        $this->subject = new SpannerDriver($this->spannerClientFactory);
+        $this->spannerClientFactory = $this->createMock(SpannerClientFactory::class);
+        $this->sessionPool = $this->createMock(SessionPoolInterface::class);
+        $this->subject = new SpannerDriver($this->spannerClientFactory, $this->sessionPool);
     }
 
     public function testConstructorWithDefaultValues()
     {
-        $subject = new SpannerDriver();
-        
-        $this->assertInstanceOf(
-            SpannerClientFactory::class,
-            $this->getPrivateProperty($subject, 'spannerClientFactory')
+        $this->assertSame(
+            $this->spannerClientFactory,
+            $this->getPrivateProperty($this->subject, 'spannerClientFactory')
+        );
+        $this->assertSame(
+            $this->sessionPool,
+            $this->getPrivateProperty($this->subject, 'sessionPool')
         );
     }
-    
+
     public function testConnect()
     {
         $instance = $this->createConfiguredMock(
@@ -78,6 +80,7 @@ class SpannerDriverTest extends TestCase
         $this->setPrivateProperty($this->subject, 'instance', $instance);
 
         $parameters = ['instance' => 'toto', 'dbname' => 'titi'];
+
         $connection = $this->subject->connect($parameters);
 
         $this->assertInstanceOf(SpannerConnection::class, $connection);
@@ -230,5 +233,20 @@ class SpannerDriverTest extends TestCase
         $this->setPrivateProperty($this->subject, 'instanceName', 'fixture');
 
         $this->assertEquals(['salut'], $this->subject->listDatabases(''));
+    }
+
+    public function testListDatabasesFromDriverOptions()
+    {
+        $this->setPrivateProperty(
+            $this->subject,
+            'driverOptions',
+            [
+                SpannerDriver::DRIVER_OPTION_DATABASES => [
+                    'my_db'
+                ],
+            ]
+        );
+
+        $this->assertEquals(['my_db'], $this->subject->listDatabases(''));
     }
 }

@@ -142,6 +142,19 @@ class SpannerConnectionWrapperTest extends TestCase
         );
     }
 
+    public function testTransactional()
+    {
+        $function = function () {};
+
+        $_conn = $this->createMock(SpannerConnection::class);
+        $_conn->expects($this->once())
+            ->method('transactional')
+            ->with($function)
+            ->willReturn('success');
+
+        $this->assertEquals('success', $this->getConnectionWrapper($_conn)->transactional($function));
+    }
+
     public function testCommit()
     {
         $this->expectNoException(

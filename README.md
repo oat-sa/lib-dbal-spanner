@@ -71,6 +71,12 @@ Of course, you can also run all the tests at once, using:
 ./vendor/phpunit/phpunit/phpunit
 ```
 
+#### Check code coverage
+
+```shell script
+./vendor/phpunit/phpunit/phpunit --coverage-html tests/report
+``` 
+
 Again, don't forget to delete your instance afterwards.
 
 ## Standards

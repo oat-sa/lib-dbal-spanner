@@ -26,16 +26,29 @@ use Closure;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver;
+use Google\Auth\Cache\SysVCacheItemPool;
 use Google\Cloud\Core\Exception\GoogleException;
-use Google\Cloud\Core\Exception\NotFoundException;
+use Google\Cloud\Core\Lock\SemaphoreLock;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Instance;
+use Google\Cloud\Spanner\Session\CacheSessionPool;
+use Google\Cloud\Spanner\Session\SessionPoolInterface;
+use Google\Cloud\Spanner\SpannerClient;
 use LogicException;
 use OAT\Library\DBALSpanner\SpannerClient\SpannerClientFactory;
 
 class SpannerDriver implements Driver
 {
     public const DRIVER_NAME = 'gcp-spanner';
+    public const DRIVER_OPTION_AUTH_POOL = 'driver-option-auth-pool';
+    public const DRIVER_OPTION_SESSION_POOL = 'driver-option-session-pool';
+    public const DRIVER_OPTION_CREDENTIALS_FETCHER = 'driver-option-credentials-fetcher';
+    public const DRIVER_OPTION_CLIENT_CONFIGURATION = 'driver-option-client-configuration';
+    public const DRIVER_OPTION_CREDENTIALS_FILE_PATH = 'driver-option-credentials-file-path';
+    public const DRIVER_OPTION_DATABASES = 'driver-option-databases';
+
+    private const SESSIONS_MIN = 1;
+    private const SESSIONS_MAX = 100;
 
     /** @var Instance */
     private $instance;
@@ -51,18 +64,23 @@ class SpannerDriver implements Driver
 
     /** @var SpannerConnection */
     private $connection;
-    
-    /**
-     * SpannerDriver constructor.
-     *
-     * @param SpannerClientFactory $spannerClientFactory
-     */
-    public function __construct(SpannerClientFactory $spannerClientFactory = null)
-    {
-        if ($spannerClientFactory === null) {
-            $spannerClientFactory = new SpannerClientFactory();
-        }
+
+    /** @var SessionPoolInterface */
+    private $sessionPool;
+
+    /** @var array */
+    private $driverOptions;
+
+    /** @var SpannerClient */
+    private $spannerClient;
+
+    public function __construct(
+        SpannerClientFactory $spannerClientFactory = null,
+        SessionPoolInterface $sessionPool = null
+    ) {
         $this->spannerClientFactory = $spannerClientFactory;
+        $this->sessionPool = $sessionPool;
+        $this->driverOptions = [];
     }
 
     /**
@@ -70,18 +88,32 @@ class SpannerDriver implements Driver
      *
      * @throws LogicException When a parameter is missing or ext/grpc is missing or the instance does not exist.
      * @throws GoogleException When ext/grpc is missing.
-     * @throws NotFoundException when database does not exist.
-     * @throws DBALException
      */
     public function connect(array $params, $username = null, $password = null, array $driverOptions = [])
     {
+        $this->driverOptions = $driverOptions;
+
         [$this->instanceName, $this->databaseName] = $this->parseParameters($params);
+
         $this->instance = $this->getInstance($this->instanceName);
 
-        $cacheSessionPool = $this->spannerClientFactory->createCacheSessionPool();
-        $database = $this->selectDatabase($this->databaseName, ['sessionPool' => $cacheSessionPool]);
-        $cacheSessionPool->setDatabase($database);
-        $cacheSessionPool->warmup();
+        $cacheSessionPool = $this->getSessionPool();
+
+        $database = $this->selectDatabase(
+            $this->databaseName,
+            [
+                'sessionPool' => $cacheSessionPool
+            ]
+        );
+
+        /**
+         * Unfortunately Google's default implementation does not respect the interface `SessionPoolInterface`
+         *
+         * @TODO Remove this as soon as the major version will be released
+         */
+        if ($cacheSessionPool instanceof CacheSessionPool) {
+            $cacheSessionPool->warmup();
+        }
 
         $this->connection = new SpannerConnection($this, $database);
 
@@ -113,10 +145,10 @@ class SpannerDriver implements Driver
         if (!$this->connection instanceof SpannerConnection) {
             throw new DBALException('Can not run transaction without connecting first.');
         }
-        
+
         return $this->connection->transactional($closure);
     }
-    
+
     /**
      * Selects a database if it exists.
      *
@@ -162,8 +194,8 @@ class SpannerDriver implements Driver
     public function getInstance(string $instanceName): Instance
     {
         if ($this->instance === null) {
-            $spannerClient = $this->spannerClientFactory->create();
-            $instance = $spannerClient->instance($instanceName);
+            $instance = $this->getSpannerClient()->instance($instanceName);
+
             $this->instanceName = $instanceName;
             $this->instance = $instance;
         }
@@ -181,6 +213,10 @@ class SpannerDriver implements Driver
      */
     public function listDatabases(string $instanceName = ''): array
     {
+        if (!empty($this->driverOptions[self::DRIVER_OPTION_DATABASES])) {
+            return $this->driverOptions[self::DRIVER_OPTION_DATABASES];
+        }
+
         if ($instanceName === '') {
             $instanceName = $this->instanceName;
         }
@@ -193,5 +229,58 @@ class SpannerDriver implements Driver
         }
 
         return $databaseList;
+    }
+
+    private function getSessionPool(): ?SessionPoolInterface
+    {
+        if ($this->sessionPool !== null) {
+            return $this->sessionPool;
+        }
+
+        if (array_key_exists(self::DRIVER_OPTION_SESSION_POOL, $this->driverOptions)) {
+            $this->sessionPool = $this->driverOptions[self::DRIVER_OPTION_SESSION_POOL];
+
+            return $this->sessionPool;
+        }
+
+        /**
+         * @deprecated This method should be avoided and dependency should be always passed
+         */
+        $this->sessionPool = new CacheSessionPool(
+            new SysVCacheItemPool(['proj' => 'B']),
+            [
+                'lock' => new SemaphoreLock(65535),
+                'minSessions' => self::SESSIONS_MIN,
+                'maxSessions' => self::SESSIONS_MAX,
+            ]
+        );
+
+        return $this->sessionPool;
+    }
+
+    private function getSpannerClientFactory(): SpannerClientFactory
+    {
+        if ($this->spannerClientFactory === null) {
+            $this->spannerClientFactory = new SpannerClientFactory(
+                $this->driverOptions[self::DRIVER_OPTION_AUTH_POOL] ?? null,
+                $this->driverOptions[self::DRIVER_OPTION_CREDENTIALS_FETCHER] ?? null,
+                $this->driverOptions[self::DRIVER_OPTION_CLIENT_CONFIGURATION] ?? null,
+                $this->driverOptions[self::DRIVER_OPTION_CREDENTIALS_FILE_PATH] ?? null
+            );
+        }
+
+        return $this->spannerClientFactory;
+    }
+
+    /**
+     * @throws GoogleException
+     */
+    private function getSpannerClient(): SpannerClient
+    {
+        if ($this->spannerClient === null) {
+            $this->spannerClient = $this->getSpannerClientFactory()->create();
+        }
+
+        return $this->spannerClient;
     }
 }

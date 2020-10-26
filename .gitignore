@@ -3,3 +3,4 @@
 /composer.lock
 /bin
 /tests/env.ini
+/tests/report
