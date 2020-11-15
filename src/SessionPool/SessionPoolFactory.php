@@ -36,7 +36,7 @@ class SessionPoolFactory
     private const SESSIONS_MIN = 1;
     private const SESSIONS_MAX = 100;
 
-    public function create(array $params): SessionPoolInterface
+    public function create(array $params = []): SessionPoolInterface
     {
         return new CacheSessionPool(
             new SysVCacheItemPool(
