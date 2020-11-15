@@ -26,15 +26,14 @@ use Closure;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver;
-use Google\Auth\Cache\SysVCacheItemPool;
 use Google\Cloud\Core\Exception\GoogleException;
-use Google\Cloud\Core\Lock\SemaphoreLock;
 use Google\Cloud\Spanner\Database;
 use Google\Cloud\Spanner\Instance;
 use Google\Cloud\Spanner\Session\CacheSessionPool;
 use Google\Cloud\Spanner\Session\SessionPoolInterface;
 use Google\Cloud\Spanner\SpannerClient;
 use LogicException;
+use OAT\Library\DBALSpanner\SessionPool\SessionPoolFactory;
 use OAT\Library\DBALSpanner\SpannerClient\SpannerClientFactory;
 
 class SpannerDriver implements Driver
@@ -42,13 +41,11 @@ class SpannerDriver implements Driver
     public const DRIVER_NAME = 'gcp-spanner';
     public const DRIVER_OPTION_AUTH_POOL = 'driver-option-auth-pool';
     public const DRIVER_OPTION_SESSION_POOL = 'driver-option-session-pool';
+    public const DRIVER_OPTION_SESSION_POOL_OPTIONS = 'driver-option-session-pool-options';
     public const DRIVER_OPTION_CREDENTIALS_FETCHER = 'driver-option-credentials-fetcher';
     public const DRIVER_OPTION_CLIENT_CONFIGURATION = 'driver-option-client-configuration';
     public const DRIVER_OPTION_CREDENTIALS_FILE_PATH = 'driver-option-credentials-file-path';
     public const DRIVER_OPTION_DATABASES = 'driver-option-databases';
-
-    private const SESSIONS_MIN = 1;
-    private const SESSIONS_MAX = 100;
 
     /** @var Instance */
     private $instance;
@@ -74,12 +71,18 @@ class SpannerDriver implements Driver
     /** @var SpannerClient */
     private $spannerClient;
 
+    /** @var SessionPoolFactory */
+    private $sessionPoolFactory;
+
     public function __construct(
         SpannerClientFactory $spannerClientFactory = null,
-        SessionPoolInterface $sessionPool = null
-    ) {
+        SessionPoolInterface $sessionPool = null,
+        SessionPoolFactory $sessionPoolFactory = null
+    )
+    {
         $this->spannerClientFactory = $spannerClientFactory;
         $this->sessionPool = $sessionPool;
+        $this->sessionPoolFactory = $sessionPoolFactory;
         $this->driverOptions = [];
     }
 
@@ -243,17 +246,8 @@ class SpannerDriver implements Driver
             return $this->sessionPool;
         }
 
-        /**
-         * @deprecated This method should be avoided and dependency should be always passed
-         */
-        $this->sessionPool = new CacheSessionPool(
-            new SysVCacheItemPool(['proj' => 'B']),
-            [
-                'lock' => new SemaphoreLock(65535),
-                'minSessions' => self::SESSIONS_MIN,
-                'maxSessions' => self::SESSIONS_MAX,
-            ]
-        );
+        $this->sessionPool = $this->getSessionPoolFactory()
+            ->create((array)$this->driverOptions[self::DRIVER_OPTION_SESSION_POOL_OPTIONS]);
 
         return $this->sessionPool;
     }
@@ -270,6 +264,15 @@ class SpannerDriver implements Driver
         }
 
         return $this->spannerClientFactory;
+    }
+
+    private function getSessionPoolFactory(): SessionPoolFactory
+    {
+        if ($this->sessionPoolFactory === null) {
+            $this->sessionPoolFactory = new SessionPoolFactory();
+        }
+
+        return $this->sessionPoolFactory;
     }
 
     /**
