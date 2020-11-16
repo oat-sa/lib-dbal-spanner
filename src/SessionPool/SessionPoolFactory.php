@@ -33,6 +33,7 @@ class SessionPoolFactory
 {
     public const OPTION_MIN_SESSIONS = 'minSessions';
     public const OPTION_MAX_SESSIONS = 'maxSessions';
+    public const OPTION_SEMAPHORE_LOCK_KEY = 'semaphoreLockKey';
     public const OPTION_PROJ = 'proj';
     public const OPTION_REDIS_DSN = 'redisDsn';
     public const OPTION_REDIS_CONNECTION_OPTIONS = 'redisConnectionOptions';
@@ -53,7 +54,7 @@ class SessionPoolFactory
         return new CacheSessionPool(
             $this->getCacheItemPool($params),
             [
-                'lock' => new SemaphoreLock(65535),
+                'lock' => new SemaphoreLock($params[self::OPTION_SEMAPHORE_LOCK_KEY] ?? 65535),
                 'minSessions' => $params[self::OPTION_MIN_SESSIONS] ?? self::SESSIONS_MIN,
                 'maxSessions' => $params[self::OPTION_MAX_SESSIONS] ?? self::SESSIONS_MAX,
             ]

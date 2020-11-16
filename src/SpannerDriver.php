@@ -78,11 +78,10 @@ class SpannerDriver implements Driver
         SpannerClientFactory $spannerClientFactory = null,
         SessionPoolInterface $sessionPool = null,
         SessionPoolFactory $sessionPoolFactory = null
-    )
-    {
+    ) {
         $this->spannerClientFactory = $spannerClientFactory;
         $this->sessionPool = $sessionPool;
-        $this->sessionPoolFactory = $sessionPoolFactory;
+        $this->sessionPoolFactory = $sessionPoolFactory ?? new SessionPoolFactory();
         $this->driverOptions = [];
     }
 
@@ -246,7 +245,7 @@ class SpannerDriver implements Driver
             return $this->sessionPool;
         }
 
-        $this->sessionPool = $this->getSessionPoolFactory()
+        $this->sessionPool = $this->sessionPoolFactory
             ->create((array)$this->driverOptions[self::DRIVER_OPTION_SESSION_POOL_OPTIONS]);
 
         return $this->sessionPool;
@@ -264,15 +263,6 @@ class SpannerDriver implements Driver
         }
 
         return $this->spannerClientFactory;
-    }
-
-    private function getSessionPoolFactory(): SessionPoolFactory
-    {
-        if ($this->sessionPoolFactory === null) {
-            $this->sessionPoolFactory = new SessionPoolFactory();
-        }
-
-        return $this->sessionPoolFactory;
     }
 
     /**
