@@ -26,28 +26,54 @@ use Google\Auth\Cache\SysVCacheItemPool;
 use Google\Cloud\Core\Lock\SemaphoreLock;
 use Google\Cloud\Spanner\Session\CacheSessionPool;
 use Google\Cloud\Spanner\Session\SessionPoolInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Symfony\Component\Cache\Adapter\RedisAdapter;
 
 class SessionPoolFactory
 {
     public const OPTION_MIN_SESSIONS = 'minSessions';
     public const OPTION_MAX_SESSIONS = 'maxSessions';
     public const OPTION_PROJ = 'proj';
+    public const OPTION_REDIS_DSN = 'redisDsn';
+    public const OPTION_REDIS_CONNECTION_OPTIONS = 'redisConnectionOptions';
 
     private const SESSIONS_MIN = 1;
     private const SESSIONS_MAX = 100;
 
+    /** @var CacheItemPoolInterface */
+    private $redisCacheItemPool;
+
+    public function __construct(CacheItemPoolInterface $redisCacheItemPool = null)
+    {
+        $this->redisCacheItemPool = $redisCacheItemPool;
+    }
+
     public function create(array $params = []): SessionPoolInterface
     {
         return new CacheSessionPool(
-            new SysVCacheItemPool(
-                [
-                    'proj' => $params[self::OPTION_PROJ] ?? 'A',
-                ]
-            ),
+            $this->getCacheItemPool($params),
             [
                 'lock' => new SemaphoreLock(65535),
                 'minSessions' => $params[self::OPTION_MIN_SESSIONS] ?? self::SESSIONS_MIN,
                 'maxSessions' => $params[self::OPTION_MAX_SESSIONS] ?? self::SESSIONS_MAX,
+            ]
+        );
+    }
+
+    private function getCacheItemPool(array $params): CacheItemPoolInterface
+    {
+        if (isset($params[self::OPTION_REDIS_DSN]) || $this->redisCacheItemPool) {
+            return $this->redisCacheItemPool ?? new RedisAdapter(
+                RedisAdapter::createConnection(
+                    $params[self::OPTION_REDIS_DSN],
+                    $params[self::OPTION_REDIS_CONNECTION_OPTIONS] ?? []
+                )
+            );
+        }
+
+        return new SysVCacheItemPool(
+            [
+                'proj' => $params[self::OPTION_PROJ] ?? 'A',
             ]
         );
     }
