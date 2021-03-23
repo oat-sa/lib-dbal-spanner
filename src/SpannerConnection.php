@@ -79,7 +79,9 @@ class SpannerConnection implements Connection
         if ($this->isDdlStatement($sql)) {
             $longRunningOperation = $this->database->updateDdl($sql);
             $longRunningOperation->pollUntilComplete();
-            return true;
+
+            //stub to be complient with return type. it is used by doctrine
+            return new SpannerStatement($this->database, $sql);
         }
 
         $statement = $this->prepare($sql);
