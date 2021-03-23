@@ -39,13 +39,13 @@ use OAT\Library\DBALSpanner\SpannerClient\SpannerClientFactory;
 class SpannerDriver implements Driver
 {
     public const DRIVER_NAME = 'gcp-spanner';
-    public const DRIVER_OPTION_AUTH_POOL = 'driver-option-auth-pool';
-    public const DRIVER_OPTION_SESSION_POOL = 'driver-option-session-pool';
-    public const DRIVER_OPTION_SESSION_POOL_OPTIONS = 'driver-option-session-pool-options';
-    public const DRIVER_OPTION_CREDENTIALS_FETCHER = 'driver-option-credentials-fetcher';
-    public const DRIVER_OPTION_CLIENT_CONFIGURATION = 'driver-option-client-configuration';
-    public const DRIVER_OPTION_CREDENTIALS_FILE_PATH = 'driver-option-credentials-file-path';
-    public const DRIVER_OPTION_DATABASES = 'driver-option-databases';
+    public const DRIVER_OPTION_AUTH_POOL = 'driver_option_auth_pool';
+    public const DRIVER_OPTION_SESSION_POOL = 'driver_option_session_pool';
+    public const DRIVER_OPTION_SESSION_POOL_OPTIONS = 'driver_option_session_pool_options';
+    public const DRIVER_OPTION_CREDENTIALS_FETCHER = 'driver_option_credentials_fetcher';
+    public const DRIVER_OPTION_CLIENT_CONFIGURATION = 'driver_option_client_configuration';
+    public const DRIVER_OPTION_CREDENTIALS_FILE_PATH = 'driver_option_credentials_file_path';
+    public const DRIVER_OPTION_DATABASES = 'driver_option_databases';
 
     /** @var Instance */
     private $instance;
@@ -246,7 +246,7 @@ class SpannerDriver implements Driver
         }
 
         $this->sessionPool = $this->sessionPoolFactory
-            ->create((array)$this->driverOptions[self::DRIVER_OPTION_SESSION_POOL_OPTIONS]);
+            ->create($this->driverOptions[self::DRIVER_OPTION_SESSION_POOL_OPTIONS] ?? []);
 
         return $this->sessionPool;
     }

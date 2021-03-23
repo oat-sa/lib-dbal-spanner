@@ -12,7 +12,10 @@
         "doctrine/dbal": "^2.9",
         "google/cloud-spanner": "^1.15",
         "phpmyadmin/sql-parser": "^5.2.0",
-        "symfony/cache": "4.2.*",
+        "symfony/cache": "5.*",
+        "ext-sysvshm": "*",
+        "ext-sysvmsg": "*",
+        "ext-sysvsem": "*",
         "ext-json": "*"
     },
     "require-dev":  {
